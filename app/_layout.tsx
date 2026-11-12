@@ -1,30 +1,44 @@
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+} from '@expo-google-fonts/dm-sans';
+import {
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+} from '@expo-google-fonts/manrope';
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { getPendingGatePackage, isAppGateAvailable } from '@/modules/app-gate';
+import { BudgetProvider, useBudget } from '@/src/context/BudgetContext';
+import { colors } from '@/src/theme/colors';
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+export { ErrorBoundary } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   anchor: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_600SemiBold,
+    DMSans_700Bold,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
   }, [error]);
@@ -39,18 +53,73 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <BudgetProvider>
+      <StatusBar style="dark" />
+      <SetupRedirect />
+      <PendingGateRedirect />
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.bg },
+          headerTintColor: colors.primary,
+          headerTitleStyle: { fontFamily: 'Manrope_700Bold' },
+          contentStyle: { backgroundColor: colors.bg },
+        }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="onboarding"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+        <Stack.Screen
+          name="apps-vigiladas"
+          options={{ title: 'Apps vigiladas', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="gate"
+          options={{
+            title: 'Portero',
+            presentation: 'fullScreenModal',
+            headerShown: false,
+            gestureEnabled: false,
+          }}
+        />
+      </Stack>
+    </BudgetProvider>
+  );
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+function SetupRedirect() {
+  const router = useRouter();
+  const { ready, settings } = useBudget();
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
-  );
+  useEffect(() => {
+    if (!ready) return;
+    if (!settings.setupComplete) {
+      router.replace('/onboarding');
+    }
+  }, [ready, settings.setupComplete, router]);
+
+  return null;
+}
+
+function PendingGateRedirect() {
+  const router = useRouter();
+  const { ready, settings } = useBudget();
+
+  useEffect(() => {
+    if (!ready || !settings.setupComplete) return;
+    if (!isAppGateAvailable()) return;
+    let active = true;
+    (async () => {
+      const pending = await getPendingGatePackage();
+      if (active && pending) {
+        router.push({ pathname: '/gate', params: { package: pending } });
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [ready, settings.setupComplete, router]);
+
+  return null;
 }

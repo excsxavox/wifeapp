@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="gate_accessibility_description">WifeApp usa Accesibilidad solo para detectar cuando abres apps de gasto (Uber, banca, etc.) y pedirte motivo y monto antes de entrar.</string>
+</resources>
