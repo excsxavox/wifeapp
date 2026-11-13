@@ -96,6 +96,7 @@ export async function getSettings(): Promise<AppSettings> {
     currency: map.currency ?? 'USD',
     emergencyPinSet: map.emergencyPinSet === '1',
     setupComplete: map.setupComplete === '1',
+    companionRole: map.companionRole === 'esposo' ? 'esposo' : 'esposa',
   };
 }
 

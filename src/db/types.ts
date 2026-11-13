@@ -32,11 +32,14 @@ export type WatchedApp = {
   kind: string | null;
 };
 
+export type CompanionRole = 'esposa' | 'esposo';
+
 export type AppSettings = {
   monthlyResetDay: number;
   currency: string;
   emergencyPinSet: boolean;
   setupComplete: boolean;
+  companionRole: CompanionRole;
 };
 
 export type CategoryBudgetStatus = Category & {

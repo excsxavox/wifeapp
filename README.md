@@ -50,16 +50,18 @@ Sin Accesibilidad + al menos una app vigilada, el portero no actúa.
 ```
 Usuario abre app vigilada (ej. Pichincha)
         ↓
-AccessibilityService detecta el package
+WifeApp pregunta solo: categoría + motivo
+   · «Continuar» → entra a la app
+   · «Solo ver» → entra y al salir NO pide monto
+   · Cancelar → no entra
         ↓
-Abre WifeApp → pantalla /gate
+Usuario usa la app vigilada
         ↓
-Usuario indica categoría, motivo y monto
+Al cerrar o cambiar de app (si no eligió «Solo ver»)
         ↓
-¿Categoría dentro de presupuesto?
-   Sí → registra y deja entrar (gracia ~2 min)
-   No → pide código de emergencia
-        Cancelar → vuelve al inicio
+WifeApp pregunta: ¿cuánto gastaste?
+   · Registra monto (PIN si supera presupuesto)
+   · o «No gasté nada»
 ```
 
 ---

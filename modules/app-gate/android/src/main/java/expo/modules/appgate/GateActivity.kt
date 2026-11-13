@@ -15,15 +15,19 @@ class GateActivity : Activity() {
 
     val target = intent?.getStringExtra(EXTRA_TARGET_PACKAGE)
       ?: GateStore.getPendingPackage(this)
+    val mode = intent?.getStringExtra(EXTRA_MODE)
+      ?: GateStore.getPendingMode(this)
 
     if (target.isNullOrBlank()) {
       finish()
       return
     }
 
-    GateStore.setPendingPackage(this, target)
+    GateStore.setPendingGate(this, target, mode)
 
-    val deepLink = Uri.parse("wifeapp://gate?package=${Uri.encode(target)}")
+    val deepLink = Uri.parse(
+      "wifeapp://gate?package=${Uri.encode(target)}&mode=${Uri.encode(mode)}"
+    )
 
     // Prefer deep link into Expo Router.
     val viewIntent = Intent(Intent.ACTION_VIEW, deepLink).apply {
@@ -50,6 +54,7 @@ class GateActivity : Activity() {
         main.action = Intent.ACTION_VIEW
         main.data = deepLink
         main.putExtra(EXTRA_TARGET_PACKAGE, target)
+        main.putExtra(EXTRA_MODE, mode)
         main.addFlags(
           Intent.FLAG_ACTIVITY_NEW_TASK or
             Intent.FLAG_ACTIVITY_CLEAR_TOP or
@@ -65,6 +70,7 @@ class GateActivity : Activity() {
 
   companion object {
     const val EXTRA_TARGET_PACKAGE = "target_package"
+    const val EXTRA_MODE = "gate_mode"
 
     fun openOverlaySettings(activity: Activity) {
       val intent = Intent(

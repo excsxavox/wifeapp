@@ -92,6 +92,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     currency: 'USD',
     emergencyPinSet: false,
     setupComplete: false,
+    companionRole: 'esposa',
   });
 
   const [initError, setInitError] = useState<string | null>(null);

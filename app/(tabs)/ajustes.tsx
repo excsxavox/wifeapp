@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
+  Image,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -20,8 +22,10 @@ import { PrimaryButton } from '@/src/components/PrimaryButton';
 import { Screen } from '@/src/components/Screen';
 import { useBudget } from '@/src/context/BudgetContext';
 import { setSetting } from '@/src/db/queries';
+import type { CompanionRole } from '@/src/db/types';
 import { ensureNotificationPermissions } from '@/src/domain/notifications';
 import { setEmergencyPin } from '@/src/domain/pin';
+import { getCompanionAvatar } from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
 
 export default function AjustesScreen() {
@@ -92,8 +96,43 @@ export default function AjustesScreen() {
     );
   };
 
+  const saveCompanion = async (role: CompanionRole) => {
+    await setSetting('companionRole', role);
+    await reloadSettings();
+  };
+
   return (
     <Screen title="Ajustes" subtitle="Código de emergencia, permisos y período.">
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Compañero / compañera</Text>
+        <Text style={styles.cardBody}>
+          Quién aparece al abrir una app vigilada y al preguntar el gasto.
+        </Text>
+        <View style={styles.companionRow}>
+          {(
+            [
+              { role: 'esposa' as const, label: 'Esposa' },
+              { role: 'esposo' as const, label: 'Esposo' },
+            ] as const
+          ).map((option) => (
+            <Pressable
+              key={option.role}
+              onPress={() => saveCompanion(option.role)}
+              style={[
+                styles.companionCard,
+                settings.companionRole === option.role &&
+                  styles.companionCardActive,
+              ]}>
+              <Image
+                source={getCompanionAvatar(option.role, 'friendly')}
+                style={styles.companionImage}
+              />
+              <Text style={styles.companionLabel}>{option.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Código de emergencia</Text>
         <Text style={styles.cardBody}>
@@ -239,5 +278,33 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
     lineHeight: 20,
     marginBottom: 12,
+  },
+  companionRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  companionCard: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    padding: 8,
+    alignItems: 'center',
+    backgroundColor: colors.bgElevated,
+  },
+  companionCardActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  companionImage: {
+    width: '100%',
+    height: 110,
+    borderRadius: 10,
+    backgroundColor: '#111',
+  },
+  companionLabel: {
+    marginTop: 8,
+    fontFamily: 'DMSans_700Bold',
+    color: colors.ink,
   },
 });

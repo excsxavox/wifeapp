@@ -17,6 +17,21 @@ export type LastDetected = {
   at: number;
 };
 
+export type GateMode = 'intent' | 'settle';
+
+export type PendingGate = {
+  packageName: string | null;
+  mode: GateMode;
+};
+
+export type GateSession = {
+  packageName: string;
+  categoryId: number;
+  reason: string;
+  browseOnly: boolean;
+  needsSettle: boolean;
+};
+
 const noopPermissions: GatePermissions = {
   accessibilityEnabled: false,
   overlayAllowed: false,
@@ -52,6 +67,39 @@ export async function grantAccess(packageName: string, graceSeconds = 120): Prom
   await AppGateModule.grantAccess(packageName, graceSeconds);
 }
 
+export async function startGateSession(input: {
+  packageName: string;
+  categoryId: number;
+  reason: string;
+  browseOnly: boolean;
+}): Promise<void> {
+  if (Platform.OS !== 'android' || !AppGateModule) return;
+  await AppGateModule.startGateSession(
+    input.packageName,
+    input.categoryId,
+    input.reason,
+    input.browseOnly
+  );
+}
+
+export async function getGateSession(): Promise<GateSession | null> {
+  if (Platform.OS !== 'android' || !AppGateModule) return null;
+  const raw = await AppGateModule.getGateSession();
+  if (!raw?.packageName) return null;
+  return {
+    packageName: String(raw.packageName),
+    categoryId: Number(raw.categoryId ?? -1),
+    reason: String(raw.reason ?? ''),
+    browseOnly: Boolean(raw.browseOnly),
+    needsSettle: Boolean(raw.needsSettle),
+  };
+}
+
+export async function clearGateSession(): Promise<void> {
+  if (Platform.OS !== 'android' || !AppGateModule) return;
+  await AppGateModule.clearGateSession();
+}
+
 export async function denyAndGoHome(): Promise<void> {
   if (Platform.OS !== 'android' || !AppGateModule) return;
   await AppGateModule.denyAndGoHome();
@@ -60,6 +108,22 @@ export async function denyAndGoHome(): Promise<void> {
 export async function getPendingGatePackage(): Promise<string | null> {
   if (Platform.OS !== 'android' || !AppGateModule) return null;
   return AppGateModule.getPendingPackage();
+}
+
+export async function getPendingGate(): Promise<PendingGate> {
+  if (Platform.OS !== 'android' || !AppGateModule) {
+    return { packageName: null, mode: 'intent' };
+  }
+  if (typeof AppGateModule.getPendingGate === 'function') {
+    const raw = await AppGateModule.getPendingGate();
+    const mode = raw?.mode === 'settle' ? 'settle' : 'intent';
+    return {
+      packageName: (raw?.packageName as string | null) ?? null,
+      mode,
+    };
+  }
+  const packageName = await AppGateModule.getPendingPackage();
+  return { packageName, mode: 'intent' };
 }
 
 export async function clearPendingGatePackage(): Promise<void> {

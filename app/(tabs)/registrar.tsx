@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { CategoryChip } from '@/src/components/CategoryChip';
+import { CompanionPrompt } from '@/src/components/CompanionPrompt';
 import { Field } from '@/src/components/Field';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
 import { Screen } from '@/src/components/Screen';
@@ -82,6 +83,7 @@ export default function RegistrarScreen() {
     <Screen
       title="Registrar gasto"
       subtitle="Separa comida, mensuales y el resto desde el celular.">
+      <CompanionPrompt role={settings.companionRole} mood="friendly" />
       <Text style={styles.label}>Categoría</Text>
       <View style={styles.chips}>
         {categories.map((category) => (

@@ -16,7 +16,11 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { getPendingGatePackage, isAppGateAvailable } from '@/modules/app-gate';
+import {
+  getGateSession,
+  getPendingGate,
+  isAppGateAvailable,
+} from '@/modules/app-gate';
 import { BudgetProvider, useBudget } from '@/src/context/BudgetContext';
 import { colors } from '@/src/theme/colors';
 
@@ -111,9 +115,20 @@ function PendingGateRedirect() {
     if (!isAppGateAvailable()) return;
     let active = true;
     (async () => {
-      const pending = await getPendingGatePackage();
-      if (active && pending) {
-        router.push({ pathname: '/gate', params: { package: pending } });
+      const pending = await getPendingGate();
+      if (active && pending.packageName) {
+        router.push({
+          pathname: '/gate',
+          params: { package: pending.packageName, mode: pending.mode },
+        });
+        return;
+      }
+      const session = await getGateSession();
+      if (active && session?.needsSettle) {
+        router.push({
+          pathname: '/gate',
+          params: { package: session.packageName, mode: 'settle' },
+        });
       }
     })();
     return () => {

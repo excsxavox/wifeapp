@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Alert,
   AppState,
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -26,6 +27,8 @@ import {
 import { Field } from '@/src/components/Field';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
 import { useBudget } from '@/src/context/BudgetContext';
+import { setSetting } from '@/src/db/queries';
+import type { CompanionRole } from '@/src/db/types';
 import {
   APP_CATALOG,
   KIND_LABELS,
@@ -34,13 +37,15 @@ import {
   type AppKind,
 } from '@/src/domain/appCatalog';
 import { setEmergencyPin } from '@/src/domain/pin';
+import { getCompanionAvatar } from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
 
-type Step = 'welcome' | 'permissions' | 'classify' | 'pin';
+type Step = 'welcome' | 'companion' | 'permissions' | 'classify' | 'pin';
 
 type SelectableApp = InstalledApp & { suggestedKind: AppKind };
 
 const STEPS_ANDROID = [
+  'Elegir esposo o esposa',
   'Activar Accesibilidad (obligatorio)',
   'Elegir apps a vigilar (obligatorio)',
   'Código de emergencia (opcional)',
@@ -48,8 +53,10 @@ const STEPS_ANDROID = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { categories, saveClassifiedApps, completeSetup, ready } = useBudget();
+  const { categories, saveClassifiedApps, completeSetup, ready, reloadSettings } =
+    useBudget();
   const [step, setStep] = useState<Step>('welcome');
+  const [companionRole, setCompanionRole] = useState<CompanionRole>('esposa');
   const [installed, setInstalled] = useState<SelectableApp[]>([]);
   const [loadingApps, setLoadingApps] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -295,8 +302,49 @@ export default function OnboardingScreen() {
             ))}
             <PrimaryButton
               label="Empezar"
-              onPress={() => setStep('permissions')}
+              onPress={() => setStep('companion')}
               style={{ marginTop: 16 }}
+            />
+          </View>
+        ) : null}
+
+        {step === 'companion' ? (
+          <View>
+            <Text style={styles.title}>¿Quién te acompaña?</Text>
+            <Text style={styles.body}>
+              Aparecerá al abrir una app vigilada (amigable) y al registrar el
+              gasto (un poco molesto). Puedes cambiarlo después en Ajustes.
+            </Text>
+            <View style={styles.companionRow}>
+              {(
+                [
+                  { role: 'esposa' as const, label: 'Esposa' },
+                  { role: 'esposo' as const, label: 'Esposo' },
+                ] as const
+              ).map((option) => (
+                <Pressable
+                  key={option.role}
+                  onPress={() => setCompanionRole(option.role)}
+                  style={[
+                    styles.companionCard,
+                    companionRole === option.role && styles.companionCardActive,
+                  ]}>
+                  <Image
+                    source={getCompanionAvatar(option.role, 'friendly')}
+                    style={styles.companionImage}
+                  />
+                  <Text style={styles.companionLabel}>{option.label}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <PrimaryButton
+              label="Continuar"
+              onPress={async () => {
+                await setSetting('companionRole', companionRole);
+                await reloadSettings();
+                setStep(needsAndroidGate ? 'permissions' : 'classify');
+              }}
+              style={{ marginTop: 8 }}
             />
           </View>
         ) : null}
@@ -736,5 +784,35 @@ const styles = StyleSheet.create({
   kindTextActive: {
     color: colors.primary,
     fontFamily: 'DMSans_700Bold',
+  },
+  companionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  companionCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 16,
+    padding: 10,
+    alignItems: 'center',
+  },
+  companionCardActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primarySoft,
+  },
+  companionImage: {
+    width: '100%',
+    height: 140,
+    borderRadius: 12,
+    backgroundColor: '#111',
+  },
+  companionLabel: {
+    marginTop: 10,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 14,
+    color: colors.ink,
   },
 });

@@ -50,11 +50,21 @@ class AppGateModule : Module() {
 
     AsyncFunction("grantAccess") { packageName: String, graceSeconds: Int ->
       GateStore.grantAccess(context, packageName, graceSeconds)
-      val launch = context.packageManager.getLaunchIntentForPackage(packageName)
-      if (launch != null) {
-        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(launch)
-      }
+      launchPackage(packageName)
+    }
+
+    AsyncFunction("startGateSession") { packageName: String, categoryId: Int, reason: String, browseOnly: Boolean ->
+      GateStore.startSession(context, packageName, categoryId, reason, browseOnly)
+      launchPackage(packageName)
+    }
+
+    AsyncFunction("getGateSession") {
+      GateStore.getSession(context)
+    }
+
+    AsyncFunction("clearGateSession") {
+      GateStore.clearSession(context)
+      GateStore.clearPendingPackage(context)
     }
 
     AsyncFunction("denyAndGoHome") {
@@ -68,6 +78,10 @@ class AppGateModule : Module() {
 
     AsyncFunction("getPendingPackage") {
       GateStore.getPendingPackage(context)
+    }
+
+    AsyncFunction("getPendingGate") {
+      GateStore.getPendingGate(context)
     }
 
     AsyncFunction("clearPendingPackage") {
@@ -100,6 +114,14 @@ class AppGateModule : Module() {
         }
         .distinctBy { it["androidPackage"] }
         .sortedBy { (it["label"] as String).lowercase() }
+    }
+  }
+
+  private fun launchPackage(packageName: String) {
+    val launch = context.packageManager.getLaunchIntentForPackage(packageName)
+    if (launch != null) {
+      launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      context.startActivity(launch)
     }
   }
 

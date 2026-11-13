@@ -177,6 +177,15 @@ export async function getDatabase() {
           );
         }
 
+        const companion = await db.getFirstAsync<{ value: string }>(
+          `SELECT value FROM settings WHERE key = 'companionRole'`
+        );
+        if (!companion) {
+          await db.runAsync(
+            `INSERT INTO settings (key, value) VALUES ('companionRole', 'esposa')`
+          );
+        }
+
         return db;
       } catch (error) {
         dbPromise = null;
