@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AppState,
+  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -8,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 
 import {
   getGatePermissions,
@@ -17,10 +19,12 @@ import {
 import { BudgetBar } from '@/src/components/BudgetBar';
 import { GoalProgressCard } from '@/src/components/GoalProgressCard';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
+import { RankBadge } from '@/src/components/RankBadge';
 import { Screen } from '@/src/components/Screen';
 import { useBudget } from '@/src/context/BudgetContext';
 import { computeKdaMetrics } from '@/src/domain/kda';
 import { formatMoney } from '@/src/domain/money';
+import { getCompanionAvatar } from '@/src/theme/companions';
 import { categoryMeta, colors } from '@/src/theme/colors';
 
 export default function ResumenScreen() {
@@ -32,21 +36,38 @@ export default function ResumenScreen() {
     expenses,
     watchedApps,
     primaryGoal,
-    periodLabel,
     totalBudget,
     totalSpent,
     settings,
+    rank,
     refresh,
   } = useBudget();
   const [refreshing, setRefreshing] = useState(false);
   const [gateReady, setGateReady] = useState(true);
+
   const kda = useMemo(
-    () => computeKdaMetrics(expenses, statuses),
-    [expenses, statuses]
+    () => computeKdaMetrics(expenses, statuses, rank),
+    [expenses, statuses, rank]
   );
 
   const available = totalBudget - totalSpent;
-  const watchedCount = watchedApps.filter((a) => a.enabled).length;
+  const usedPercent =
+    totalBudget > 0 ? Math.min(999, (totalSpent / totalBudget) * 100) : 0;
+  const enabledWatched = watchedApps.filter((a) => a.enabled);
+  const watchedCount = enabledWatched.length;
+  const role = settings.companionRole ?? 'esposa';
+
+  const coachCategory =
+    statuses.find((s) => s.name === 'Comida') ??
+    statuses.find((s) => !s.overBudget) ??
+    statuses[0];
+
+  const rankProgressPercent =
+    kda.nextTier && kda.monthsNeeded > 0
+      ? Math.min(100, (kda.progressMonths / kda.monthsNeeded) * 100)
+      : kda.nextTier
+        ? 0
+        : 100;
 
   const checkGate = useCallback(async () => {
     if (Platform.OS !== 'android' || !isAppGateAvailable()) {
@@ -77,7 +98,8 @@ export default function ResumenScreen() {
   if (!ready) {
     return (
       <Screen
-        title="Tu mes, bajo control."
+        title="Tu mes, bajo control"
+        brandMinimal
         subtitle={initError ? 'Error al iniciar' : 'Cargando…'}>
         {initError ? (
           <View>
@@ -97,25 +119,20 @@ export default function ResumenScreen() {
     );
   }
 
-  const formattedAvailable = formatMoney(
-    Math.max(available, 0),
-    settings.currency
-  );
+  const monthLabel = formatMonthHeading(new Date());
+  const previewCategories = statuses.slice(0, 3);
 
   return (
     <Screen
-      title="Tu mes, bajo control."
-      subtitle="Un vistazo a tus gastos. Un respiro para ti."
+      title="Tu mes, bajo control"
+      brandMinimal
       refreshing={refreshing}
-      onRefresh={onRefresh}
-      right={
-        <PrimaryButton
-          label="+ Registrar"
-          onPress={() => router.push('/registrar')}
-          style={{ paddingHorizontal: 12, minHeight: 38 }}
-        />
-      }>
-      <Text style={styles.period}>{periodLabel}</Text>
+      onRefresh={onRefresh}>
+      <View style={styles.periodPill}>
+        <Text style={styles.periodChevron}>‹</Text>
+        <Text style={styles.periodText}>{monthLabel}</Text>
+        <Text style={styles.periodChevron}>›</Text>
+      </View>
 
       {!gateReady ? (
         <View style={styles.gateWarn}>
@@ -131,66 +148,83 @@ export default function ResumenScreen() {
       ) : null}
 
       <View style={styles.balanceCard}>
-        <View style={styles.balanceTop}>
-          <Text style={styles.balanceTitle}>Disponible este mes</Text>
-          <View style={styles.balanceChip}>
-            <Text style={styles.balanceChipText}>
-              {available >= 0 ? 'A tu ritmo' : 'Revisa tu plan'}
-            </Text>
-          </View>
-        </View>
-        <Text style={styles.balanceAmount}>{formattedAvailable}</Text>
-        <Text style={styles.balanceSub}>
-          {available >= 0
-            ? 'Todavía hay espacio para lo que importa.'
-            : 'Es un buen momento para ajustar tus límites.'}
+        <Text style={styles.balanceTitle}>Disponible del presupuesto</Text>
+        <Text style={styles.balanceAmount}>
+          {formatMoney(Math.max(available, 0), settings.currency)}
         </Text>
+
         <View style={styles.balanceBottom}>
-          <View>
-            <Text style={styles.balanceLabel}>Presupuesto</Text>
-            <Text style={styles.balanceValue}>
-              {formatMoney(totalBudget, settings.currency)}
-            </Text>
-          </View>
-          <View>
+          <View style={styles.balanceStat}>
             <Text style={styles.balanceLabel}>Gastado</Text>
             <Text style={styles.balanceValue}>
               {formatMoney(totalSpent, settings.currency)}
             </Text>
           </View>
-        </View>
-      </View>
-
-      <View style={styles.gateCard}>
-        <View style={styles.gateHeader}>
-          <View style={styles.shield}>
-            <Text style={styles.shieldGlyph}>▣</Text>
-          </View>
-          <View
-            style={[
-              styles.pill,
-              gateReady && watchedCount > 0 ? styles.pillOk : styles.pillIdle,
-            ]}>
-            <Text style={styles.pillText}>
-              {gateReady && watchedCount > 0 ? 'Portero listo' : 'En pausa'}
+          <View style={styles.balanceDivider} />
+          <View style={styles.balanceStat}>
+            <Text style={styles.balanceLabel}>Presupuesto</Text>
+            <Text style={styles.balanceValue}>
+              {formatMoney(totalBudget, settings.currency)}
             </Text>
           </View>
         </View>
-        <Text style={styles.gateTitle}>
-          Una pausa antes{'\n'}de gastar.
-        </Text>
-        <Text style={styles.gateBody}>
-          Tu portero te ayuda a decidir con calma antes de abrir tus apps.
-        </Text>
-        <Text style={styles.gateApps}>
-          {watchedCount} apps bajo tu cuidado
-        </Text>
-        <PrimaryButton
-          label="Ver apps vigiladas"
-          variant="secondary"
-          onPress={() => router.push('/apps-vigiladas')}
-        />
+
+        <View style={styles.balanceBarWrap}>
+          <BudgetBar
+            percent={usedPercent}
+            color="#D9EDAB"
+            height={6}
+          />
+          <Text style={styles.balanceBarLabel}>
+            {Math.round(Math.min(usedPercent, 100))}% utilizado
+          </Text>
+        </View>
       </View>
+
+      <View style={styles.coachBanner}>
+        <Image
+          source={getCompanionAvatar(role, 'friendly')}
+          style={styles.coachAvatar}
+          resizeMode="contain"
+        />
+        <View style={styles.coachCopy}>
+          <Text style={styles.coachTitle}>
+            {available >= 0 ? '¡Vas a tu ritmo!' : 'Revisemos el plan'}
+          </Text>
+          <Text style={styles.coachBody}>
+            {coachCategory
+              ? `Te quedan ${formatMoney(Math.max(coachCategory.remaining, 0), settings.currency)} para ${coachCategory.name.toLowerCase()} este mes`
+              : 'Empieza registrando tu primer gasto del mes.'}
+          </Text>
+        </View>
+      </View>
+
+      <Pressable
+        style={styles.porteroCard}
+        onPress={() => router.push('/apps-vigiladas')}>
+        <SymbolView
+          name={{
+            ios: 'checkmark.shield',
+            android: 'verified_user',
+            web: 'verified_user',
+          }}
+          tintColor="#6F825C"
+          size={26}
+          style={styles.porteroIcon}
+        />
+        <View style={styles.porteroCopy}>
+          <Text style={styles.porteroTitle}>
+            {gateReady && watchedCount > 0
+              ? 'Portero activo'
+              : 'Portero en pausa'}
+          </Text>
+          <Text style={styles.porteroBody}>
+            {watchedCount} app{watchedCount === 1 ? '' : 's'} protegida
+            {watchedCount === 1 ? '' : 's'}
+          </Text>
+        </View>
+        <Text style={styles.porteroChevron}>›</Text>
+      </Pressable>
 
       <GoalProgressCard
         goal={primaryGoal}
@@ -199,100 +233,95 @@ export default function ResumenScreen() {
         onPress={() => router.push('/metas' as never)}
       />
 
-      <View style={styles.card}>
-        <View style={styles.cardHeading}>
-          <Text style={styles.cardTitle}>Por categoría</Text>
+      <View style={styles.section}>
+        <View style={styles.sectionHeading}>
+          <Text style={styles.sectionTitle}>Tus categorías</Text>
           <Pressable onPress={() => router.push('/presupuesto')}>
-            <Text style={styles.textButton}>Editar</Text>
+            <Text style={styles.textButton}>Ver todo</Text>
           </Pressable>
         </View>
-        {statuses.map((status) => {
+
+        {previewCategories.map((status) => {
           const meta = categoryMeta[status.name] ?? {
             color: status.color,
             tint: colors.primarySoft,
           };
-          const label = status.overBudget
-            ? 'Al límite'
-            : status.percent >= 80
-              ? 'Con cuidado'
-              : 'Bajo control';
           return (
-            <View key={status.id} style={styles.catRow}>
-              <View style={[styles.catIcon, { backgroundColor: meta.tint }]}>
-                <View
-                  style={[styles.catDot, { backgroundColor: meta.color }]}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={styles.catTop}>
-                  <Text style={styles.catTitle}>{status.name}</Text>
-                  <Text style={styles.catAmount}>
-                    <Text style={styles.catAmountBold}>
-                      {formatMoney(status.spent, settings.currency)}
+            <View key={status.id} style={styles.catCard}>
+              <View style={styles.catTop}>
+                <View style={[styles.catIcon, { backgroundColor: meta.tint }]}>
+                  <View
+                    style={[styles.catDot, { backgroundColor: meta.color }]}
+                  />
+                </View>
+                <View style={styles.catMain}>
+                  <View style={styles.catTitleRow}>
+                    <Text style={styles.catTitle}>{status.name}</Text>
+                    <Text style={styles.catPercent}>
+                      {Math.round(status.percent)}%
                     </Text>
-                    {' / '}
+                  </View>
+                  <Text style={styles.catAmount}>
+                    {formatMoney(status.spent, settings.currency)} de{' '}
                     {formatMoney(status.monthlyLimit, settings.currency)}
                   </Text>
-                </View>
-                <BudgetBar percent={status.percent} color={meta.color} />
-              </View>
-              <View style={styles.catRight}>
-                <View
-                  style={[
-                    styles.statusPill,
-                    status.overBudget || status.percent >= 80
-                      ? styles.statusPillWarn
-                      : null,
-                  ]}>
-                  <Text
-                    style={[
-                      styles.statusPillText,
-                      (status.overBudget || status.percent >= 80) && {
-                        color: colors.warning,
-                      },
-                    ]}>
-                    {label}
+                  <View style={styles.catBar}>
+                    <BudgetBar
+                      percent={status.percent}
+                      color={meta.color}
+                      height={8}
+                    />
+                  </View>
+                  <Text style={styles.catRemain}>
+                    Te quedan{' '}
+                    {formatMoney(
+                      Math.max(status.remaining, 0),
+                      settings.currency
+                    )}
                   </Text>
                 </View>
-                <Text style={styles.catStatus}>
-                  {Math.round(status.percent)}% utilizado
-                </Text>
               </View>
             </View>
           );
         })}
       </View>
 
-      <Pressable style={styles.kdaCard} onPress={() => router.push('/metricas')}>
-        <View style={styles.cardHeading}>
-          <Text style={styles.cardTitle}>Tu constancia cuenta</Text>
-          <Text style={styles.textButton}>Ver →</Text>
+      <Pressable
+        style={styles.rankQuick}
+        onPress={() => router.push('/constancia')}>
+        <View style={styles.rankQuickTop}>
+          <Text style={styles.rankQuickEyebrow}>Tu constancia</Text>
+          <Text style={styles.rankQuickLink}>Ver todo ›</Text>
         </View>
-        <Text style={styles.rankTitle}>Rango {kda.tier}</Text>
-        <Text style={styles.rankCaption}>Cada decisión suma.</Text>
-        <View style={styles.kdaValues}>
-          <View style={styles.kdaCol}>
-            <Text style={styles.kdaNum}>{kda.kills}</Text>
-            <Text style={styles.kdaSmall}>Aciertos</Text>
-          </View>
-          <View style={[styles.kdaCol, styles.kdaBorder]}>
-            <Text style={[styles.kdaNum, { color: colors.warning }]}>
-              {kda.deaths}
+        <View style={styles.rankQuickBody}>
+          <RankBadge tier={kda.tier} size={56} />
+          <View style={styles.rankQuickCopy}>
+            <Text style={styles.rankQuickName}>Rango {kda.tier}</Text>
+            <Text style={styles.rankQuickHint}>
+              {kda.nextTier
+                ? `${kda.progressMonths}/${kda.monthsNeeded} meses hacia ${kda.nextTier}`
+                : 'Nivel máximo alcanzado'}
             </Text>
-            <Text style={styles.kdaSmall}>Deslices</Text>
+            <View style={styles.rankQuickBar}>
+              <BudgetBar
+                percent={rankProgressPercent}
+                color={colors.primaryMid}
+                height={8}
+              />
+            </View>
           </View>
-          <View style={[styles.kdaCol, styles.kdaBorder]}>
-            <Text style={styles.kdaNum}>{kda.assists}</Text>
-            <Text style={styles.kdaSmall}>Apoyos</Text>
-          </View>
-        </View>
-        <View style={styles.kdaRatio}>
-          <Text style={styles.kdaRatioLabel}>Tu ratio KDA</Text>
-          <Text style={styles.kdaRatioValue}>{kda.ratioLabel}</Text>
         </View>
       </Pressable>
     </Screen>
   );
+}
+
+function formatMonthHeading(date: Date) {
+  const raw = date.toLocaleDateString('es-ES', {
+    month: 'long',
+    year: 'numeric',
+  });
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
 }
 
 const styles = StyleSheet.create({
@@ -300,11 +329,28 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     color: colors.inkMuted,
   },
-  period: {
+  periodPill: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    marginBottom: 16,
+  },
+  periodChevron: {
     fontFamily: 'DMSans_500Medium',
-    fontSize: 11,
-    color: colors.inkMuted,
-    marginBottom: 14,
+    fontSize: 14,
+    color: '#8A9480',
+  },
+  periodText: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 12,
+    color: colors.ink,
   },
   gateWarn: {
     backgroundColor: colors.warningSoft,
@@ -327,157 +373,167 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     backgroundColor: colors.primary,
-    borderRadius: 20,
-    padding: 25,
-    marginBottom: 16,
-    overflow: 'hidden',
-    minHeight: 240,
-  },
-  balanceTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 12,
   },
   balanceTitle: {
     fontFamily: 'DMSans_400Regular',
-    fontSize: 12,
-    color: '#D0DED1',
-  },
-  balanceChip: {
-    borderWidth: 1,
-    borderColor: '#FFFFFF2D',
-    borderRadius: 20,
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-  },
-  balanceChipText: {
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 9,
-    color: '#DCE6D9',
+    fontSize: 11,
+    color: '#C5D4C8',
   },
   balanceAmount: {
-    marginTop: 13,
-    fontFamily: 'Manrope_700Bold',
-    fontSize: 42,
-    letterSpacing: -2,
+    marginTop: 4,
+    fontFamily: 'Manrope_800ExtraBold',
+    fontSize: 28,
+    letterSpacing: -1,
     color: '#fff',
   },
-  balanceSub: {
-    marginTop: 4,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 11,
-    color: '#B7CCBD',
-  },
   balanceBottom: {
-    marginTop: 25,
-    paddingTop: 19,
-    borderTopWidth: 1,
-    borderTopColor: '#FFFFFF24',
+    marginTop: 12,
     flexDirection: 'row',
-    gap: 22,
+    alignItems: 'center',
+  },
+  balanceStat: {
+    flex: 1,
+  },
+  balanceDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: '#FFFFFF28',
+    marginHorizontal: 10,
   },
   balanceLabel: {
     fontFamily: 'DMSans_400Regular',
     fontSize: 10,
-    color: '#ADC7B5',
+    color: '#A9C0B2',
   },
   balanceValue: {
-    marginTop: 6,
-    fontFamily: 'Manrope_600SemiBold',
-    fontSize: 18,
+    marginTop: 2,
+    fontFamily: 'Manrope_700Bold',
+    fontSize: 15,
     color: '#fff',
   },
-  gateCard: {
-    backgroundColor: colors.limeSoft,
-    borderWidth: 1,
-    borderColor: '#E4EAD9',
-    borderRadius: 20,
-    padding: 22,
-    marginBottom: 16,
+  balanceBarWrap: {
+    marginTop: 12,
+    gap: 6,
   },
-  gateHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  shield: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: '#E0E9CC',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shieldGlyph: {
-    color: '#527143',
-    fontSize: 18,
-  },
-  pill: {
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-  },
-  pillOk: { backgroundColor: '#EEF3E7' },
-  pillIdle: { backgroundColor: '#F1F3EE' },
-  pillText: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 9,
-    color: '#63864D',
-  },
-  gateTitle: {
-    marginTop: 16,
-    fontFamily: 'Manrope_800ExtraBold',
-    fontSize: 21,
-    letterSpacing: -0.6,
-    color: colors.ink,
-    lineHeight: 28,
-  },
-  gateBody: {
-    marginTop: 10,
+  balanceBarLabel: {
     fontFamily: 'DMSans_400Regular',
-    fontSize: 11,
-    lineHeight: 18,
-    color: '#82906F',
-  },
-  gateApps: {
-    marginVertical: 16,
-    fontFamily: 'DMSans_500Medium',
     fontSize: 10,
-    color: '#6D7F5A',
+    color: '#B7CCBD',
   },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    padding: 22,
-    marginBottom: 16,
-  },
-  cardHeading: {
+  coachBanner: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    gap: 14,
+    backgroundColor: '#E7F0D8',
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingLeft: 8,
+    paddingRight: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+    minHeight: 88,
   },
-  cardTitle: {
+  coachAvatar: {
+    width: 78,
+    height: 78,
+    borderRadius: 18,
+    backgroundColor: 'transparent',
+  },
+  coachCopy: {
+    flex: 1,
+    paddingVertical: 6,
+  },
+  coachTitle: {
     fontFamily: 'Manrope_800ExtraBold',
     fontSize: 16,
     color: colors.ink,
   },
-  textButton: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 11,
-    color: '#70825E',
+  coachBody: {
+    marginTop: 4,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#6F7F5F',
   },
-  catRow: {
+  porteroCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E6E9E1',
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 18,
+  },
+  porteroIcon: {
+    width: 28,
+    height: 28,
+  },
+  porteroCopy: {
+    flex: 1,
+  },
+  porteroTitle: {
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 15,
+    color: '#1F2A24',
+  },
+  porteroBody: {
+    marginTop: 3,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 13,
+    color: '#7A8478',
+  },
+  porteroChevron: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 22,
+    color: '#8B9486',
+    marginTop: -2,
+  },
+  chevron: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 22,
+    color: '#A3AD97',
+  },
+  section: {
+    marginBottom: 8,
+  },
+  sectionHeading: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontFamily: 'Manrope_800ExtraBold',
+    fontSize: 18,
+    color: colors.ink,
+  },
+  textButton: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12,
+    color: '#70825E',
+  },
+  catCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 10,
+  },
+  catTop: {
+    flexDirection: 'row',
     gap: 12,
-    marginBottom: 20,
   },
   catIcon: {
-    width: 39,
-    height: 39,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -487,110 +543,85 @@ const styles = StyleSheet.create({
     height: 10,
     borderRadius: 5,
   },
-  catTop: {
+  catMain: {
+    flex: 1,
+  },
+  catTitleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    alignItems: 'center',
     gap: 8,
   },
   catTitle: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 12,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 14,
     color: colors.ink,
   },
+  catPercent: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12,
+    color: colors.inkMuted,
+  },
   catAmount: {
+    marginTop: 2,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 12,
+    color: '#8B9382',
+  },
+  catBar: {
+    marginTop: 10,
+  },
+  catRemain: {
+    marginTop: 8,
     fontFamily: 'DMSans_400Regular',
     fontSize: 11,
-    color: '#A1A79B',
+    color: '#8B9382',
   },
-  catAmountBold: {
-    fontFamily: 'DMSans_600SemiBold',
-    color: '#4D5C4E',
-  },
-  catRight: {
-    minWidth: 64,
-    alignItems: 'flex-end',
-  },
-  statusPill: {
-    backgroundColor: '#EEF3E7',
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  statusPillWarn: {
-    backgroundColor: '#FCF2DF',
-  },
-  statusPillText: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 9,
-    color: '#63864D',
-  },
-  catStatus: {
-    marginTop: 6,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 9,
-    color: '#9A9F92',
-  },
-  kdaCard: {
+  rankQuick: {
+    marginTop: 10,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 20,
-    padding: 22,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: 8,
   },
-  rankTitle: {
+  rankQuickTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  rankQuickEyebrow: {
     fontFamily: 'Manrope_800ExtraBold',
     fontSize: 15,
     color: colors.ink,
-    textAlign: 'center',
   },
-  rankCaption: {
-    marginTop: 6,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 10,
-    color: '#929A8B',
-    textAlign: 'center',
+  rankQuickLink: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 12,
+    color: '#70825E',
   },
-  kdaValues: {
+  rankQuickBody: {
     flexDirection: 'row',
-    marginTop: 20,
-    marginBottom: 14,
-  },
-  kdaCol: {
-    flex: 1,
     alignItems: 'center',
+    gap: 14,
   },
-  kdaBorder: {
-    borderLeftWidth: 1,
-    borderLeftColor: colors.border,
+  rankQuickCopy: {
+    flex: 1,
   },
-  kdaNum: {
-    fontFamily: 'Manrope_700Bold',
-    fontSize: 23,
+  rankQuickName: {
+    fontFamily: 'Manrope_800ExtraBold',
+    fontSize: 18,
     color: colors.ink,
   },
-  kdaSmall: {
-    marginTop: 5,
+  rankQuickHint: {
+    marginTop: 3,
     fontFamily: 'DMSans_400Regular',
-    fontSize: 9,
-    color: '#8B9382',
+    fontSize: 12,
+    color: colors.inkMuted,
   },
-  kdaRatio: {
-    backgroundColor: '#F8F9F4',
-    borderRadius: 9,
-    padding: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  kdaRatioLabel: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 10,
-    color: '#8B9480',
-  },
-  kdaRatioValue: {
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 10,
-    color: '#687E4E',
+  rankQuickBar: {
+    marginTop: 10,
   },
 });

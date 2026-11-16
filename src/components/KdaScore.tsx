@@ -1,16 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { RankBadge } from '@/src/components/RankBadge';
 import type { KdaTier } from '@/src/domain/kda';
 import { colors } from '@/src/theme/colors';
-
-const tierColor: Record<KdaTier, string> = {
-  Hierro: '#6B7280',
-  Bronce: '#A15C12',
-  Plata: '#5A6B62',
-  Oro: '#B8860B',
-  Platino: '#2A6F97',
-  Diamante: '#1B4D3E',
-};
 
 type Props = {
   kills: number;
@@ -31,14 +23,20 @@ export function KdaScore({
 }: Props) {
   return (
     <View style={styles.wrap}>
-      <Text style={styles.eyebrow}>Rendimiento del período</Text>
-      <Text style={[styles.tier, { color: tierColor[tier] }]}>{tier}</Text>
-      <Text style={styles.ratio}>{ratioLabel}</Text>
-      <Text style={styles.ratioCaption}>KDA ratio</Text>
+      <Text style={styles.eyebrow}>TU RANGO DEL MES</Text>
+
+      <View style={styles.rankRow}>
+        <RankBadge tier={tier} size={110} />
+        <View style={styles.rankCopy}>
+          <Text style={styles.tier}>Rango {tier}</Text>
+          <Text style={styles.ratio}>{ratioLabel}</Text>
+          <Text style={styles.ratioCaption}>Ratio KDA · (K + A) / D</Text>
+        </View>
+      </View>
 
       <View style={styles.row}>
         <Stat letter="K" value={kills} caption="Aciertos" color={colors.success} />
-        <Stat letter="D" value={deaths} caption="Deslices" color={colors.danger} />
+        <Stat letter="D" value={deaths} caption="Deslices" color="#BA7544" />
         <Stat letter="A" value={assists} caption="Apoyos" color={colors.accent} />
       </View>
 
@@ -77,28 +75,39 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   eyebrow: {
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 13,
-    color: colors.inkMuted,
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 9,
+    letterSpacing: 1.4,
+    color: '#92A17F',
+    marginBottom: 14,
+  },
+  rankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 18,
+  },
+  rankCopy: {
+    flex: 1,
   },
   tier: {
-    marginTop: 6,
     fontFamily: 'Manrope_800ExtraBold',
-    fontSize: 28,
+    fontSize: 24,
     letterSpacing: -0.5,
+    color: colors.ink,
   },
   ratio: {
     marginTop: 4,
     fontFamily: 'Manrope_800ExtraBold',
-    fontSize: 48,
+    fontSize: 36,
     color: colors.ink,
-    letterSpacing: -1.5,
+    letterSpacing: -1.2,
   },
   ratioCaption: {
+    marginTop: 2,
     fontFamily: 'DMSans_400Regular',
-    fontSize: 13,
+    fontSize: 12,
     color: colors.inkFaint,
-    marginBottom: 16,
   },
   row: {
     flexDirection: 'row',
@@ -110,6 +119,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 8,
     alignItems: 'center',
@@ -133,8 +143,8 @@ const styles = StyleSheet.create({
   hint: {
     marginTop: 14,
     fontFamily: 'DMSans_400Regular',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13,
+    lineHeight: 19,
     color: colors.inkMuted,
   },
 });

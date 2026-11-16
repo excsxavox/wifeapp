@@ -51,7 +51,7 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -94,9 +94,6 @@
           "Cross-Origin-Embedder-Policy": "credentialless",
           "Cross-Origin-Opener-Policy": "same-origin"
         },
-        "asyncRoutes": {
-          "web": true
-        }
       },
       "eas": {
         "projectId": "67834e29-6eb0-4ef0-8242-f1f85c8d20a4"

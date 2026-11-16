@@ -13,7 +13,7 @@ export function BrandMark({ size = 36 }: { size?: number }) {
           borderRadius: size * 0.31,
         },
       ]}>
-      <Text style={[styles.glyph, { fontSize: size * 0.42 }]}>✳</Text>
+      <Text style={[styles.glyph, { fontSize: size * 0.48 }]}>W</Text>
     </View>
   );
 }

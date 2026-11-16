@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
-  Image,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 
 import {
   getGatePermissions,
@@ -19,13 +18,13 @@ import {
 } from '@/modules/app-gate';
 import { Field } from '@/src/components/Field';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
+import { ProfileAvatar } from '@/src/components/ProfileAvatar';
 import { Screen } from '@/src/components/Screen';
 import { useBudget } from '@/src/context/BudgetContext';
 import { setSetting } from '@/src/db/queries';
-import type { CompanionRole } from '@/src/db/types';
+import { clearAuthSession } from '@/src/domain/auth';
 import { ensureNotificationPermissions } from '@/src/domain/notifications';
 import { setEmergencyPin } from '@/src/domain/pin';
-import { getCompanionAvatar } from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
 
 export default function AjustesScreen() {
@@ -96,42 +95,42 @@ export default function AjustesScreen() {
     );
   };
 
-  const saveCompanion = async (role: CompanionRole) => {
-    await setSetting('companionRole', role);
-    await reloadSettings();
+  const signOut = () => {
+    Alert.alert(
+      'Cerrar sesión',
+      'Volverás a la pantalla de inicio. Tus datos locales se conservan.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: async () => {
+            await clearAuthSession();
+            await reloadSettings();
+            router.replace('/login');
+          },
+        },
+      ]
+    );
   };
 
   return (
-    <Screen title="Ajustes" subtitle="Código de emergencia, permisos y período.">
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Compañero / compañera</Text>
-        <Text style={styles.cardBody}>
-          Quién aparece al abrir una app vigilada y al preguntar el gasto.
-        </Text>
-        <View style={styles.companionRow}>
-          {(
-            [
-              { role: 'esposa' as const, label: 'Esposa' },
-              { role: 'esposo' as const, label: 'Esposo' },
-            ] as const
-          ).map((option) => (
-            <Pressable
-              key={option.role}
-              onPress={() => saveCompanion(option.role)}
-              style={[
-                styles.companionCard,
-                settings.companionRole === option.role &&
-                  styles.companionCardActive,
-              ]}>
-              <Image
-                source={getCompanionAvatar(option.role, 'friendly')}
-                style={styles.companionImage}
-              />
-              <Text style={styles.companionLabel}>{option.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
+    <Screen
+      title="Ajustes"
+      subtitle="Código de emergencia, permisos y período."
+      showBrand={false}>
+      <Link href="/perfil" asChild>
+        <Pressable style={styles.profileCard}>
+          <ProfileAvatar size={42} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>Mi perfil</Text>
+            <Text style={styles.cardBodyCompact}>
+              Avatar animado y compañero/a del portero.
+            </Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
+        </Pressable>
+      </Link>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Código de emergencia</Text>
@@ -250,24 +249,36 @@ export default function AjustesScreen() {
         style={{ marginBottom: 8 }}
       />
       <PrimaryButton
-        label="Repetir configuración inicial"
-        variant="ghost"
-        onPress={() => router.push('/onboarding')}
+        label="Cerrar sesión"
+        variant="danger"
+        onPress={signOut}
       />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 14,
+  },
   card: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 14,
   },
   cardTitle: {
-    fontFamily: 'DMSans_700Bold',
+    fontFamily: 'Manrope_800ExtraBold',
     fontSize: 16,
     color: colors.ink,
     marginBottom: 6,
@@ -279,32 +290,15 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 12,
   },
-  companionRow: {
-    flexDirection: 'row',
-    gap: 10,
+  cardBodyCompact: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 12,
+    color: colors.inkMuted,
+    lineHeight: 17,
+    marginBottom: 0,
   },
-  companionCard: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 14,
-    padding: 8,
-    alignItems: 'center',
-    backgroundColor: colors.bgElevated,
-  },
-  companionCardActive: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primarySoft,
-  },
-  companionImage: {
-    width: '100%',
-    height: 110,
-    borderRadius: 10,
-    backgroundColor: '#111',
-  },
-  companionLabel: {
-    marginTop: 8,
-    fontFamily: 'DMSans_700Bold',
-    color: colors.ink,
+  chevron: {
+    fontSize: 22,
+    color: '#A3AD97',
   },
 });

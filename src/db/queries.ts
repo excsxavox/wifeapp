@@ -85,18 +85,82 @@ export async function updateCategoryLimit(id: number, monthlyLimit: number) {
   );
 }
 
+export async function addCategory(input: {
+  name: string;
+  monthlyLimit: number;
+  color?: string;
+}): Promise<Category> {
+  const db = await getDatabase();
+  const name = input.name.trim();
+  if (!name) {
+    throw new Error('El nombre de la categoría es obligatorio');
+  }
+  const existing = await db.getFirstAsync<{ id: number }>(
+    'SELECT id FROM categories WHERE lower(name) = lower(?)',
+    name
+  );
+  if (existing) {
+    throw new Error(`Ya existe la categoría «${name}»`);
+  }
+  const maxOrder = await db.getFirstAsync<{ max: number | null }>(
+    'SELECT MAX(sort_order) as max FROM categories'
+  );
+  const sortOrder = (maxOrder?.max ?? -1) + 1;
+  const color = input.color ?? '#9B9F85';
+  const result = await db.runAsync(
+    `INSERT INTO categories (name, monthly_limit, color, sort_order)
+     VALUES (?, ?, ?, ?)`,
+    name,
+    Math.max(0, input.monthlyLimit),
+    color,
+    sortOrder
+  );
+  return {
+    id: Number(result.lastInsertRowId),
+    name,
+    monthlyLimit: Math.max(0, input.monthlyLimit),
+    color,
+    sortOrder,
+  };
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  const db = await getDatabase();
+  const count = await db.getFirstAsync<{ total: number }>(
+    'SELECT COUNT(*) as total FROM categories'
+  );
+  if ((count?.total ?? 0) <= 1) {
+    throw new Error('Debes dejar al menos una categoría');
+  }
+  await db.runAsync('UPDATE watched_apps SET category_id = NULL WHERE category_id = ?', id);
+  await db.runAsync('DELETE FROM expenses WHERE category_id = ?', id);
+  await db.runAsync('DELETE FROM categories WHERE id = ?', id);
+}
+
 export async function getSettings(): Promise<AppSettings> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<{ key: string; value: string }>(
     'SELECT key, value FROM settings'
   );
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const authMode =
+    map.authMode === 'guest' || map.authMode === 'account'
+      ? map.authMode
+      : 'none';
   return {
     monthlyResetDay: Number(map.monthlyResetDay ?? 1),
     currency: map.currency ?? 'USD',
     emergencyPinSet: map.emergencyPinSet === '1',
     setupComplete: map.setupComplete === '1',
+    authMode,
+    authEmail: map.authEmail ?? '',
+    userRole: map.userRole === 'esposa' ? 'esposa' : 'esposo',
     companionRole: map.companionRole === 'esposo' ? 'esposo' : 'esposa',
+    kdaTier: map.kdaTier ?? 'Hierro',
+    kdaProgressMonths: Number(map.kdaProgressMonths ?? 0),
+    kdaLastSettledPeriod: map.kdaLastSettledPeriod
+      ? map.kdaLastSettledPeriod
+      : null,
   };
 }
 
@@ -175,19 +239,18 @@ export async function addExpense(input: {
   };
 }
 
-export async function getExpensesForPeriod(
-  monthlyResetDay: number,
-  categoryId?: number | null,
-  now = new Date()
+export async function getExpensesInRange(
+  rangeStart: Date,
+  rangeEnd: Date,
+  categoryId?: number | null
 ): Promise<ExpenseWithCategory[]> {
   const db = await getDatabase();
-  const periodStart = toIso(getPeriodStart(now, monthlyResetDay));
-  const params: (string | number)[] = [periodStart];
+  const params: (string | number)[] = [toIso(rangeStart), toIso(rangeEnd)];
   let sql = `
     SELECT e.*, c.name as category_name, c.color as category_color
     FROM expenses e
     JOIN categories c ON c.id = e.category_id
-    WHERE e.created_at >= ?
+    WHERE e.created_at >= ? AND e.created_at < ?
   `;
   if (categoryId != null) {
     sql += ' AND e.category_id = ?';
@@ -212,6 +275,35 @@ export async function getExpensesForPeriod(
     categoryName: row.category_name,
     categoryColor: row.category_color,
   }));
+}
+
+export async function getExpensesForPeriod(
+  monthlyResetDay: number,
+  categoryId?: number | null,
+  now = new Date()
+): Promise<ExpenseWithCategory[]> {
+  const periodStart = getPeriodStart(now, monthlyResetDay);
+  // Periodo abierto: desde el inicio hasta “ahora” (sin tope superior).
+  const periodEnd = new Date(
+    Math.max(now.getTime() + 1, periodStart.getTime() + 1)
+  );
+  return getExpensesInRange(periodStart, periodEnd, categoryId);
+}
+
+export async function getSpentByCategoryInRange(
+  rangeStart: Date,
+  rangeEnd: Date
+): Promise<Record<number, number>> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{ category_id: number; total: number }>(
+    `SELECT category_id, COALESCE(SUM(amount), 0) as total
+     FROM expenses
+     WHERE created_at >= ? AND created_at < ?
+     GROUP BY category_id`,
+    toIso(rangeStart),
+    toIso(rangeEnd)
+  );
+  return Object.fromEntries(rows.map((r) => [r.category_id, r.total]));
 }
 
 export async function deleteExpense(id: number) {
@@ -315,12 +407,18 @@ export async function markSetupComplete() {
   await setSetting('setupComplete', '1');
 }
 
+export async function clearSetupComplete() {
+  await setSetting('setupComplete', '0');
+}
+
 function mapSavingsGoal(row: {
   id: number;
   name: string;
   target_amount: number;
   saved_amount: number;
   color: string;
+  icon?: string | null;
+  target_date?: string | null;
   created_at: string;
   updated_at: string;
 }): SavingsGoal {
@@ -330,6 +428,8 @@ function mapSavingsGoal(row: {
     targetAmount: row.target_amount,
     savedAmount: row.saved_amount,
     color: row.color,
+    icon: row.icon || '✈️',
+    targetDate: row.target_date ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -343,6 +443,8 @@ export async function getSavingsGoals(): Promise<SavingsGoal[]> {
     target_amount: number;
     saved_amount: number;
     color: string;
+    icon: string | null;
+    target_date: string | null;
     created_at: string;
     updated_at: string;
   }>('SELECT * FROM savings_goals ORDER BY updated_at DESC, id DESC');
@@ -355,22 +457,29 @@ export async function upsertSavingsGoal(input: {
   targetAmount: number;
   savedAmount?: number;
   color?: string;
+  icon?: string;
+  targetDate?: string | null;
 }): Promise<SavingsGoal> {
   const db = await getDatabase();
   const now = new Date().toISOString();
-  const color = input.color ?? '#88A2B0';
+  const color = input.color ?? '#3B7050';
+  const icon = input.icon ?? '✈️';
+  const targetDate = input.targetDate ?? null;
   const savedAmount = Math.max(0, input.savedAmount ?? 0);
   const name = input.name.trim();
 
   if (input.id != null) {
     await db.runAsync(
       `UPDATE savings_goals
-       SET name = ?, target_amount = ?, saved_amount = ?, color = ?, updated_at = ?
+       SET name = ?, target_amount = ?, saved_amount = ?, color = ?, icon = ?,
+           target_date = ?, updated_at = ?
        WHERE id = ?`,
       name,
       input.targetAmount,
       savedAmount,
       color,
+      icon,
+      targetDate,
       now,
       input.id
     );
@@ -380,18 +489,23 @@ export async function upsertSavingsGoal(input: {
       targetAmount: input.targetAmount,
       savedAmount,
       color,
+      icon,
+      targetDate,
       createdAt: now,
       updatedAt: now,
     };
   }
 
   const result = await db.runAsync(
-    `INSERT INTO savings_goals (name, target_amount, saved_amount, color, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO savings_goals
+      (name, target_amount, saved_amount, color, icon, target_date, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     name,
     input.targetAmount,
     savedAmount,
     color,
+    icon,
+    targetDate,
     now,
     now
   );
@@ -402,6 +516,8 @@ export async function upsertSavingsGoal(input: {
     targetAmount: input.targetAmount,
     savedAmount,
     color,
+    icon,
+    targetDate,
     createdAt: now,
     updatedAt: now,
   };

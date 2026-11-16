@@ -341,6 +341,10 @@ export default function OnboardingScreen() {
               label="Continuar"
               onPress={async () => {
                 await setSetting('companionRole', companionRole);
+                await setSetting(
+                  'userRole',
+                  companionRole === 'esposa' ? 'esposo' : 'esposa'
+                );
                 await reloadSettings();
                 setStep(needsAndroidGate ? 'permissions' : 'classify');
               }}

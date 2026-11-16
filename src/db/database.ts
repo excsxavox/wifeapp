@@ -33,6 +33,17 @@ async function migrateWatchedApps(db: SQLite.SQLiteDatabase) {
   }
 }
 
+async function migrateSavingsGoals(db: SQLite.SQLiteDatabase) {
+  if (!(await columnExists(db, 'savings_goals', 'icon'))) {
+    await db.execAsync(
+      `ALTER TABLE savings_goals ADD COLUMN icon TEXT NOT NULL DEFAULT '✈️'`
+    );
+  }
+  if (!(await columnExists(db, 'savings_goals', 'target_date'))) {
+    await db.execAsync('ALTER TABLE savings_goals ADD COLUMN target_date TEXT');
+  }
+}
+
 async function renameLegacyCategories(db: SQLite.SQLiteDatabase) {
   const renames: Array<[string, string]> = [
     ['Gastos mensuales', 'Banca'],
@@ -54,11 +65,28 @@ async function renameLegacyCategories(db: SQLite.SQLiteDatabase) {
   }
 }
 
+async function openWithTimeout() {
+  const open = SQLite.openDatabaseAsync('wifeapp.db');
+  if (Platform.OS !== 'web') return open;
+  return Promise.race([
+    open,
+    new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(
+          new Error(
+            'SQLite web tardó demasiado. Recarga con COOP/COEP activos o prueba en Android.'
+          )
+        );
+      }, 12000);
+    }),
+  ]);
+}
+
 export async function getDatabase() {
   if (!dbPromise) {
     dbPromise = (async () => {
       try {
-        const db = await SQLite.openDatabaseAsync('wifeapp.db');
+        const db = await openWithTimeout();
 
         if (Platform.OS !== 'web') {
           try {
@@ -108,12 +136,15 @@ export async function getDatabase() {
             target_amount REAL NOT NULL DEFAULT 0,
             saved_amount REAL NOT NULL DEFAULT 0,
             color TEXT NOT NULL,
+            icon TEXT NOT NULL DEFAULT '✈️',
+            target_date TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
           );
         `);
 
         await migrateWatchedApps(db);
+        await migrateSavingsGoals(db);
         await renameLegacyCategories(db);
 
         const categoryCount = await db.getFirstAsync<{ count: number }>(
@@ -183,6 +214,33 @@ export async function getDatabase() {
         if (!companion) {
           await db.runAsync(
             `INSERT INTO settings (key, value) VALUES ('companionRole', 'esposa')`
+          );
+        }
+
+        const userRole = await db.getFirstAsync<{ value: string }>(
+          `SELECT value FROM settings WHERE key = 'userRole'`
+        );
+        if (!userRole) {
+          await db.runAsync(
+            `INSERT INTO settings (key, value) VALUES ('userRole', 'esposo')`
+          );
+        }
+
+        const kdaTier = await db.getFirstAsync<{ value: string }>(
+          `SELECT value FROM settings WHERE key = 'kdaTier'`
+        );
+        if (!kdaTier) {
+          await db.runAsync(
+            `INSERT INTO settings (key, value) VALUES ('kdaTier', 'Hierro')`
+          );
+        }
+
+        const kdaProgress = await db.getFirstAsync<{ value: string }>(
+          `SELECT value FROM settings WHERE key = 'kdaProgressMonths'`
+        );
+        if (!kdaProgress) {
+          await db.runAsync(
+            `INSERT INTO settings (key, value) VALUES ('kdaProgressMonths', '0')`
           );
         }
 

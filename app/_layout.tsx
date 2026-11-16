@@ -71,12 +71,29 @@ export default function RootLayout() {
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
-          name="onboarding"
+          name="login"
           options={{ headerShown: false, gestureEnabled: false }}
         />
         <Stack.Screen
+          name="onboarding"
+          options={{ headerShown: false, gestureEnabled: false }}
+        />
+
+        <Stack.Screen
           name="apps-vigiladas"
           options={{ title: 'Apps vigiladas', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="metas"
+          options={{ title: 'Crear meta', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="perfil"
+          options={{ title: 'Mi perfil', presentation: 'card' }}
+        />
+        <Stack.Screen
+          name="ajustes"
+          options={{ title: 'Ajustes', presentation: 'card' }}
         />
         <Stack.Screen
           name="gate"
@@ -98,10 +115,15 @@ function SetupRedirect() {
 
   useEffect(() => {
     if (!ready) return;
+    if (settings.authMode === 'none') {
+      router.replace('/login');
+      return;
+    }
     if (!settings.setupComplete) {
       router.replace('/onboarding');
+      return;
     }
-  }, [ready, settings.setupComplete, router]);
+  }, [ready, settings.authMode, settings.setupComplete, router]);
 
   return null;
 }
