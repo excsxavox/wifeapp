@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
-  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -9,13 +8,18 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 
+import { AvatarFace } from '@/src/components/AvatarFace';
 import { BudgetBar } from '@/src/components/BudgetBar';
 import { Field } from '@/src/components/Field';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
 import { Screen } from '@/src/components/Screen';
 import { useBudget } from '@/src/context/BudgetContext';
 import { formatMoney, parseAmount } from '@/src/domain/money';
-import { getCompanionAvatar } from '@/src/theme/companions';
+import {
+  companionPhotoUri,
+  moodFromRatio,
+  worstSpentRatio,
+} from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
 import { GOAL_ICONS, normalizeGoalIcon } from '@/src/theme/goalIcons';
 
@@ -62,6 +66,7 @@ export default function MetasScreen() {
   const {
     savingsGoals,
     settings,
+    statuses,
     totalBudget,
     totalSpent,
     saveGoal,
@@ -85,6 +90,8 @@ export default function MetasScreen() {
 
   const available = Math.max(0, totalBudget - totalSpent);
   const role = settings.companionRole ?? 'esposa';
+  const photoUri = companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri);
+  const mood = moodFromRatio(worstSpentRatio(statuses));
 
   const targetAmountPreview = parseAmount(target) ?? 0;
   const savedAmountPreview = Math.max(0, parseAmount(saved) ?? 0);
@@ -310,11 +317,7 @@ export default function MetasScreen() {
       <Text style={styles.heroSub}>Vamos paso a paso. Tú eliges la meta.</Text>
 
       <View style={styles.coachBanner}>
-        <Image
-          source={getCompanionAvatar(role, 'happy')}
-          style={styles.coachAvatar}
-          resizeMode="contain"
-        />
+        <AvatarFace role={role} mood={mood} photoUri={photoUri} size={64} />
         <Text style={styles.coachText}>
           Empieza con una plantilla o escribe la tuya. Verás la vista previa
           abajo antes de guardar.

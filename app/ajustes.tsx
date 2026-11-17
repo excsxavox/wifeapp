@@ -212,8 +212,8 @@ export default function AjustesScreen() {
           La burbuja usa este rostro. Chica o chico cambia el dibujo y cómo te
           habla. Con el avatar pixelado, la cara sigue lo gastado en la
           categoría: tranquilo hasta 45%, atento hasta 70%, molesto hasta 85%,
-          enojado hasta 100% y furioso si te pasas. Si pones una foto, el aro
-          y el gesto marcan ese mismo enojo.
+          enojado hasta 100% y furioso si te pasas. Si pones una foto, esa misma
+          imagen sale en toda la app y el emoji marca el enojo.
         </Text>
         <View style={styles.preview}>
           <AvatarFace
@@ -263,7 +263,12 @@ export default function AjustesScreen() {
                 settings.companionRole === option.role &&
                   styles.companionCardActive,
               ]}>
-              <AvatarFace role={option.role} mood="happy" size={72} />
+              <AvatarFace
+                role={option.role}
+                mood={settings.companionRole === option.role ? mood : 'happy'}
+                photoUri={settings.companionRole === option.role ? photoUri : null}
+                size={72}
+              />
               <Text style={styles.companionLabel}>{option.label}</Text>
             </Pressable>
           ))}

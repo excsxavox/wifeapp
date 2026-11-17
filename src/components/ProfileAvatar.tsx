@@ -9,14 +9,24 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useEffect } from 'react';
 
+import { AvatarFace } from '@/src/components/AvatarFace';
+import { useBudget } from '@/src/context/BudgetContext';
 import { colors } from '@/src/theme/colors';
+import {
+  companionPhotoUri,
+  moodFromRatio,
+  worstSpentRatio,
+} from '@/src/theme/companions';
 
 type Props = {
   size?: number;
 };
 
-/** Avatar de usuario genérico (no usa imágenes de esposa/esposo). */
+/** Cabecera de perfil. Con foto, muestra esa imagen y el emoji del gasto. */
 export function ProfileAvatar({ size = 42 }: Props) {
+  const { settings, statuses } = useBudget();
+  const photoUri = companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri);
+  const mood = moodFromRatio(worstSpentRatio(statuses));
   const pulse = useSharedValue(1);
   const glow = useSharedValue(0.35);
 
@@ -47,6 +57,19 @@ export function ProfileAvatar({ size = 42 }: Props) {
   const head = Math.round(size * 0.22);
   const bodyW = Math.round(size * 0.42);
   const bodyH = Math.round(size * 0.28);
+
+  if (photoUri) {
+    return (
+      <View pointerEvents="none" style={{ width: size, height: size }}>
+        <AvatarFace
+          role={settings.companionRole}
+          mood={mood}
+          photoUri={photoUri}
+          size={size}
+        />
+      </View>
+    );
+  }
 
   return (
     <View

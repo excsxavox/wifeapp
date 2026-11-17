@@ -1,6 +1,7 @@
-import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 
+import { AvatarFace } from '@/src/components/AvatarFace';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
 import { ProfileAvatar } from '@/src/components/ProfileAvatar';
 import { Screen } from '@/src/components/Screen';
@@ -8,13 +9,19 @@ import { useBudget } from '@/src/context/BudgetContext';
 import { setSetting } from '@/src/db/queries';
 import type { CompanionRole } from '@/src/db/types';
 import { clearAuthSession } from '@/src/domain/auth';
-import { getCompanionAvatar } from '@/src/theme/companions';
+import {
+  companionPhotoUri,
+  moodFromRatio,
+  worstSpentRatio,
+} from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
 
 export default function PerfilScreen() {
   const router = useRouter();
-  const { settings, reloadSettings } = useBudget();
+  const { settings, statuses, reloadSettings } = useBudget();
   const companionRole = settings.companionRole ?? 'esposa';
+  const photoUri = companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri);
+  const mood = moodFromRatio(worstSpentRatio(statuses));
 
   const saveCompanion = async (role: CompanionRole) => {
     await setSetting('companionRole', role);
@@ -49,14 +56,18 @@ export default function PerfilScreen() {
         <ProfileAvatar size={96} />
         <Text style={styles.heroTitle}>Tu perfil</Text>
         <Text style={styles.heroSub}>
-          Avatar animado de la cabecera. Nunca usa fotos de esposa/esposo.
+          {photoUri
+            ? 'Tu foto es el avatar en toda la app. El emoji sigue lo que vas gastando.'
+            : 'Este icono abre tu perfil. El compañero de abajo sale en el portero.'}
         </Text>
       </View>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Compañero / compañera</Text>
         <Text style={styles.cardBody}>
-          Solo para el portero y el coach. No cambia el icono de arriba.
+          {photoUri
+            ? 'La foto se usa en el inicio, el portero y el coach. Chica o chico solo cambia el dibujo si vuelves al avatar pixelado.'
+            : 'Este dibujo sale en el portero y el coach.'}
         </Text>
         <View style={styles.row}>
           {(
@@ -72,10 +83,11 @@ export default function PerfilScreen() {
                 styles.option,
                 companionRole === option.role && styles.optionActive,
               ]}>
-              <Image
-                source={getCompanionAvatar(option.role, 'happy')}
-                style={styles.optionImage}
-                resizeMode="cover"
+              <AvatarFace
+                role={option.role}
+                mood={companionRole === option.role ? mood : 'happy'}
+                photoUri={companionRole === option.role ? photoUri : null}
+                size={88}
               />
               <Text style={styles.optionLabel}>{option.label}</Text>
             </Pressable>

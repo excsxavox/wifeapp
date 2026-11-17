@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
+import { AvatarFace } from '@/src/components/AvatarFace';
 import { BudgetBar } from '@/src/components/BudgetBar';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
 import { RankBadge } from '@/src/components/RankBadge';
@@ -10,7 +11,11 @@ import { Screen } from '@/src/components/Screen';
 import { useBudget } from '@/src/context/BudgetContext';
 import { GOOD_MONTH_MIN_RATIO, computeKdaMetrics } from '@/src/domain/kda';
 import { computeExpenseStreak } from '@/src/domain/streak';
-import { getCompanionAvatar } from '@/src/theme/companions';
+import {
+  companionPhotoUri,
+  moodFromRatio,
+  worstSpentRatio,
+} from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
 
 export default function ConstanciaScreen() {
@@ -43,6 +48,8 @@ export default function ConstanciaScreen() {
   );
 
   const role = settings.companionRole ?? 'esposa';
+  const photoUri = companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri);
+  const mood = moodFromRatio(worstSpentRatio(statuses));
   const rankProgressPercent =
     kda.nextTier && kda.monthsNeeded > 0
       ? Math.min(100, (kda.progressMonths / kda.monthsNeeded) * 100)
@@ -115,11 +122,7 @@ export default function ConstanciaScreen() {
       </View>
 
       <View style={styles.streakBanner}>
-        <Image
-          source={getCompanionAvatar(role, 'happy')}
-          style={styles.streakAvatar}
-          resizeMode="cover"
-        />
+        <AvatarFace role={role} mood={mood} photoUri={photoUri} size={44} />
         <Text style={styles.streakText}>
           {streakDays > 0
             ? `¡Llevas ${streakDays} día${streakDays === 1 ? '' : 's'} registrando tus gastos!`

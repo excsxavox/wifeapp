@@ -1,8 +1,9 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SymbolView } from 'expo-symbols';
 
+import { AvatarFace } from '@/src/components/AvatarFace';
 import type { CompanionRole } from '@/src/db/types';
-import { getCompanionAvatar } from '@/src/theme/companions';
+import { getCompanionAvatar, type CompanionMood } from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
 
 const HERO = '#FFB27A';
@@ -14,6 +15,8 @@ type Props = {
   currency: string;
   monthLabel: string;
   companionRole: CompanionRole;
+  photoUri?: string | null;
+  mood?: CompanionMood;
   alertCount?: number;
   onPressAlerts?: () => void;
 };
@@ -23,6 +26,8 @@ export function HomeHeroCard({
   currency,
   monthLabel,
   companionRole,
+  photoUri,
+  mood = 'happy',
   alertCount = 0,
   onPressAlerts,
 }: Props) {
@@ -63,11 +68,20 @@ export function HomeHeroCard({
             <Text style={styles.headline}>Tu dinero,{'\n'}a tu ritmo.</Text>
             <Text style={styles.month}>{monthLabel}</Text>
           </View>
-          <Image
-            source={getCompanionAvatar(companionRole, 'happy')}
-            style={styles.companion}
-            resizeMode="cover"
-          />
+          {photoUri ? (
+            <AvatarFace
+              role={companionRole}
+              mood={mood}
+              photoUri={photoUri}
+              size={112}
+            />
+          ) : (
+            <Image
+              source={getCompanionAvatar(companionRole, mood)}
+              style={styles.companion}
+              resizeMode="cover"
+            />
+          )}
         </View>
       </View>
 

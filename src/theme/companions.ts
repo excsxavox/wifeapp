@@ -54,6 +54,15 @@ export const MOOD_COLOR: Record<CompanionMood, string> = {
   furious: '#A33B32',
 };
 
+/** A photo cannot change face, so the mood rides on an emoji. */
+export const MOOD_EMOJI: Record<CompanionMood, string> = {
+  happy: '😊',
+  uneasy: '😟',
+  annoyed: '😒',
+  angry: '😠',
+  furious: '😡',
+};
+
 /** Same steps the floating bubble uses for the face. */
 export function moodFromRatio(ratio: number): CompanionMood {
   if (!Number.isFinite(ratio) || ratio < 0.45) return 'happy';

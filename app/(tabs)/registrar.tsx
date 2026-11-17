@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Alert, Image, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
+import { AvatarFace } from '@/src/components/AvatarFace';
 import { CategoryChip } from '@/src/components/CategoryChip';
 import { Field } from '@/src/components/Field';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
@@ -8,7 +9,10 @@ import { Screen } from '@/src/components/Screen';
 import { useBudget } from '@/src/context/BudgetContext';
 import { formatMoney, parseAmount } from '@/src/domain/money';
 import { verifyEmergencyPin } from '@/src/domain/pin';
-import { getCompanionAvatar } from '@/src/theme/companions';
+import {
+  companionPhotoUri,
+  moodFromRatio,
+} from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
 
 export default function RegistrarScreen() {
@@ -30,6 +34,13 @@ export default function RegistrarScreen() {
     selected != null &&
     parsedAmount != null &&
     checkWouldExceed(selected, parsedAmount);
+
+  const projectedRatio =
+    selectedStatus && selectedStatus.monthlyLimit > 0
+      ? (selectedStatus.spent + (parsedAmount ?? 0)) / selectedStatus.monthlyLimit
+      : 0;
+  const mood = moodFromRatio(projectedRatio);
+  const photoUri = companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri);
 
   const coachCopy = useMemo(() => {
     if (!selectedStatus) {
@@ -103,11 +114,7 @@ export default function RegistrarScreen() {
       subtitle="Un momento de calma antes de soltar el dinero."
       brandMinimal>
       <View style={styles.coachBanner}>
-        <Image
-          source={getCompanionAvatar(role, exceeds ? 'annoyed' : 'happy')}
-          style={styles.coachAvatar}
-          resizeMode="contain"
-        />
+        <AvatarFace role={role} mood={mood} photoUri={photoUri} size={72} />
         <View style={styles.coachCopy}>
           <Text style={styles.coachTitle}>
             {exceeds ? '¿Estás segura/o?' : '¿En qué vamos a gastar?'}

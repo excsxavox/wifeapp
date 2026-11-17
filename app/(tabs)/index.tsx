@@ -129,6 +129,8 @@ export default function ResumenScreen() {
         currency={settings.currency}
         monthLabel={monthLabel}
         companionRole={role}
+        photoUri={companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri)}
+        mood={moodFromRatio(worstSpentRatio(statuses))}
         alertCount={gateReady ? 0 : 1}
         onPressAlerts={
           gateReady ? undefined : () => openAccessibilitySettings()

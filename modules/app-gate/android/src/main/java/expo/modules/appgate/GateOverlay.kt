@@ -15,8 +15,6 @@ import android.graphics.Outline
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PixelFormat
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffColorFilter
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
@@ -794,28 +792,23 @@ class GateOverlay(private val service: AccessibilityService) {
         }
       }
       open?.let { setImageBitmap(it) }
-      if (photo != null) {
-        val tint = when (mood) {
-          "furious" -> Color.argb(78, 176, 32, 32)
-          "angry" -> Color.argb(48, 176, 48, 32)
-          "annoyed" -> Color.argb(28, 160, 80, 32)
-          else -> 0
-        }
-        if (tint != 0) setColorFilter(PorterDuffColorFilter(tint, PorterDuff.Mode.SRC_ATOP))
-      }
       contentDescription = if (role == "esposo") "Tu esposo" else "Tu esposa"
     }
     ring.addView(image, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-    if (photo != null && (mood == "uneasy" || mood == "angry" || mood == "furious")) {
+    if (photo != null) {
       val mark = TextView(service).apply {
-        text = when (mood) {
-          "furious" -> "💢"
-          "angry" -> "🔥"
-          else -> "💧"
-        }
-        textSize = 11f
+        text = moodEmoji(mood)
+        textSize = 13f
+        setShadowLayer(6f, 0f, 1f, Color.WHITE)
       }
-      ring.addView(mark, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.END))
+      ring.addView(
+        mark,
+        FrameLayout.LayoutParams(
+          ViewGroup.LayoutParams.WRAP_CONTENT,
+          ViewGroup.LayoutParams.WRAP_CONTENT,
+          Gravity.BOTTOM or Gravity.END
+        )
+      )
     }
     startMotion(ring, image, mood, photo != null, open, closed)
     return ring
@@ -883,6 +876,14 @@ class GateOverlay(private val service: AccessibilityService) {
     } catch (_: Exception) {
       null
     }
+  }
+
+  private fun moodEmoji(mood: String): String = when (mood) {
+    "furious" -> "😡"
+    "angry" -> "😠"
+    "annoyed" -> "😒"
+    "uneasy" -> "😟"
+    else -> "😊"
   }
 
   private fun moodColor(mood: String): Int = when (mood) {
