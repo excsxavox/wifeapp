@@ -24,6 +24,8 @@ type Props = {
   showBrand?: boolean;
   brandMinimal?: boolean;
   showHeading?: boolean;
+  /** Sin padding horizontal ni safe-area superior (hero a ancho completo). */
+  edgeToEdge?: boolean;
 };
 
 export function Screen({
@@ -38,6 +40,7 @@ export function Screen({
   showBrand = true,
   brandMinimal = false,
   showHeading = true,
+  edgeToEdge = false,
 }: Props) {
   const brand = showBrand ? (
     <View style={styles.brandWrap}>
@@ -56,10 +59,22 @@ export function Screen({
       </View>
     ) : null;
 
+  const edges = edgeToEdge
+    ? (['left', 'right'] as const)
+    : (['top', 'left', 'right'] as const);
+
+  const bodyStyle = [
+    styles.body,
+    edgeToEdge ? styles.bodyEdgeToEdge : null,
+    style,
+  ];
+
+  const safeStyle = [styles.safe, edgeToEdge ? styles.safeEdgeToEdge : null];
+
   if (!scroll) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-        <View style={[styles.body, style]}>
+      <SafeAreaView style={safeStyle} edges={[...edges]}>
+        <View style={bodyStyle}>
           {brand}
           {heading}
           {children}
@@ -69,14 +84,19 @@ export function Screen({
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={safeStyle} edges={[...edges]}>
       {brand}
       <ScrollView
-        contentContainerStyle={[styles.body, style]}
+        style={styles.scroll}
+        contentContainerStyle={bodyStyle}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           onRefresh ? (
-            <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} />
+            <RefreshControl
+              refreshing={!!refreshing}
+              onRefresh={onRefresh}
+              tintColor="#3A2A1F"
+            />
           ) : undefined
         }>
         {heading}
@@ -91,14 +111,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
+  safeEdgeToEdge: {
+    backgroundColor: '#FFB27A',
+  },
+  scroll: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: colors.bg,
+  },
   brandWrap: {
     paddingHorizontal: 20,
     paddingTop: 4,
     zIndex: 10,
   },
   body: {
+    width: '100%',
+    flexGrow: 1,
+    alignItems: 'stretch',
+    alignSelf: 'stretch',
     paddingHorizontal: 20,
     paddingBottom: 110,
+  },
+  bodyEdgeToEdge: {
+    paddingHorizontal: 0,
+    paddingTop: 0,
   },
   headingRow: {
     flexDirection: 'row',
@@ -107,6 +143,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 4,
     marginBottom: 22,
+    alignSelf: 'stretch',
   },
   headingText: {
     flex: 1,

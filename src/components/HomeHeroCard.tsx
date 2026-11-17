@@ -1,4 +1,5 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 
 import type { CompanionRole } from '@/src/db/types';
@@ -26,11 +27,12 @@ export function HomeHeroCard({
   alertCount = 0,
   onPressAlerts,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const amount = formatHeroAmount(Math.max(available, 0));
 
   return (
     <View style={styles.card}>
-      <View style={styles.top}>
+      <View style={[styles.top, { paddingTop: Math.max(insets.top, 12) + 8 }]}>
         <View style={styles.topBar}>
           <Text style={styles.brand}>WifeApp</Text>
           <Pressable
@@ -58,17 +60,16 @@ export function HomeHeroCard({
           </Pressable>
         </View>
 
-        <View style={styles.heroRow}>
-          <View style={styles.heroCopy}>
-            <Text style={styles.headline}>Tu dinero,{'\n'}a tu ritmo.</Text>
-            <Text style={styles.month}>{monthLabel}</Text>
-          </View>
-          <Image
-            source={getCompanionAvatar(companionRole, 'friendly')}
-            style={styles.companion}
-            resizeMode="cover"
-          />
+        <View style={styles.heroCopy}>
+          <Text style={styles.headline}>Tu dinero,{'\n'}a tu ritmo.</Text>
+          <Text style={styles.month}>{monthLabel}</Text>
         </View>
+
+        <Image
+          source={getCompanionAvatar(companionRole, 'friendly')}
+          style={styles.companion}
+          resizeMode="cover"
+        />
       </View>
 
       <View style={styles.bottom}>
@@ -91,25 +92,27 @@ function formatHeroAmount(value: number): string {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 28,
-    overflow: 'hidden',
+    width: '100%',
+    alignSelf: 'stretch',
     marginBottom: 16,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: '#F0E4D8',
+    backgroundColor: HERO,
   },
   top: {
+    width: '100%',
     backgroundColor: HERO,
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 8,
-    minHeight: 188,
+    paddingHorizontal: 20,
+    paddingBottom: 52,
+    minHeight: 236,
+    position: 'relative',
+    overflow: 'hidden',
   },
   topBar: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 18,
+    zIndex: 2,
   },
   brand: {
     fontFamily: 'Manrope_800ExtraBold',
@@ -141,14 +144,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     lineHeight: 11,
   },
-  heroRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-  },
   heroCopy: {
-    flex: 1,
-    paddingBottom: 18,
+    width: '62%',
+    maxWidth: 220,
+    paddingBottom: 8,
+    zIndex: 2,
   },
   headline: {
     fontFamily: 'Manrope_800ExtraBold',
@@ -164,16 +164,29 @@ const styles = StyleSheet.create({
     color: HERO_INK_SOFT,
   },
   companion: {
-    width: 132,
-    height: 152,
-    marginBottom: -4,
-    marginRight: -4,
+    position: 'absolute',
+    right: 0,
+    bottom: 28,
+    width: 156,
+    height: 176,
+    zIndex: 1,
   },
   bottom: {
-    backgroundColor: '#FBFCF8',
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 20,
+    width: '100%',
+    marginTop: -36,
+    zIndex: 4,
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 22,
+    // Sombra suave para marcar la superposición curva
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 6,
   },
   availableLabel: {
     fontFamily: 'DMSans_500Medium',
@@ -184,6 +197,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     flexDirection: 'row',
     alignItems: 'flex-end',
+    flexWrap: 'wrap',
     gap: 8,
   },
   amount: {

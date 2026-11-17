@@ -118,6 +118,7 @@ export default function ResumenScreen() {
     <Screen
       showBrand={false}
       showHeading={false}
+      edgeToEdge
       refreshing={refreshing}
       onRefresh={onRefresh}>
       <HomeHeroCard
@@ -131,132 +132,134 @@ export default function ResumenScreen() {
         }
       />
 
-      {!gateReady ? (
-        <View style={styles.gateWarn}>
-          <Text style={styles.gateWarnTitle}>Portero apagado</Text>
-          <Text style={styles.gateWarnBody}>
-            Falta Accesibilidad. Sin eso no saldrá el modal al abrir tus apps.
-          </Text>
-          <PrimaryButton
-            label="Activar Accesibilidad ahora"
-            onPress={openAccessibilitySettings}
+      <View style={styles.homeContent}>
+        {!gateReady ? (
+          <View style={styles.gateWarn}>
+            <Text style={styles.gateWarnTitle}>Portero apagado</Text>
+            <Text style={styles.gateWarnBody}>
+              Falta Accesibilidad. Sin eso no saldrá el modal al abrir tus apps.
+            </Text>
+            <PrimaryButton
+              label="Activar Accesibilidad ahora"
+              onPress={openAccessibilitySettings}
+            />
+          </View>
+        ) : null}
+
+        <Pressable
+          style={styles.porteroCard}
+          onPress={() => router.push('/apps-vigiladas')}>
+          <SymbolView
+            name={{
+              ios: 'checkmark.shield',
+              android: 'verified_user',
+              web: 'verified_user',
+            }}
+            tintColor="#6F825C"
+            size={26}
+            style={styles.porteroIcon}
           />
-        </View>
-      ) : null}
+          <View style={styles.porteroCopy}>
+            <Text style={styles.porteroTitle}>
+              {gateReady && watchedCount > 0
+                ? 'Portero activo'
+                : 'Portero en pausa'}
+            </Text>
+            <Text style={styles.porteroBody}>
+              {watchedCount} app{watchedCount === 1 ? '' : 's'} protegida
+              {watchedCount === 1 ? '' : 's'}
+            </Text>
+          </View>
+          <Text style={styles.porteroChevron}>›</Text>
+        </Pressable>
 
-      <Pressable
-        style={styles.porteroCard}
-        onPress={() => router.push('/apps-vigiladas')}>
-        <SymbolView
-          name={{
-            ios: 'checkmark.shield',
-            android: 'verified_user',
-            web: 'verified_user',
-          }}
-          tintColor="#6F825C"
-          size={26}
-          style={styles.porteroIcon}
+        <GoalProgressCard
+          goal={primaryGoal}
+          currency={settings.currency}
+          availableThisMonth={available}
+          onPress={() => router.push('/metas' as never)}
         />
-        <View style={styles.porteroCopy}>
-          <Text style={styles.porteroTitle}>
-            {gateReady && watchedCount > 0
-              ? 'Portero activo'
-              : 'Portero en pausa'}
-          </Text>
-          <Text style={styles.porteroBody}>
-            {watchedCount} app{watchedCount === 1 ? '' : 's'} protegida
-            {watchedCount === 1 ? '' : 's'}
-          </Text>
-        </View>
-        <Text style={styles.porteroChevron}>›</Text>
-      </Pressable>
 
-      <GoalProgressCard
-        goal={primaryGoal}
-        currency={settings.currency}
-        availableThisMonth={available}
-        onPress={() => router.push('/metas' as never)}
-      />
+        <View style={styles.section}>
+          <View style={styles.sectionHeading}>
+            <Text style={styles.sectionTitle}>Tus categorías</Text>
+            <Pressable onPress={() => router.push('/presupuesto')}>
+              <Text style={styles.textButton}>Ver todo</Text>
+            </Pressable>
+          </View>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Tus categorías</Text>
-          <Pressable onPress={() => router.push('/presupuesto')}>
-            <Text style={styles.textButton}>Ver todo</Text>
-          </Pressable>
-        </View>
-
-        {previewCategories.map((status) => {
-          const meta = categoryMeta[status.name] ?? {
-            color: status.color,
-            tint: colors.primarySoft,
-          };
-          return (
-            <View key={status.id} style={styles.catCard}>
-              <View style={styles.catTop}>
-                <View style={[styles.catIcon, { backgroundColor: meta.tint }]}>
-                  <View
-                    style={[styles.catDot, { backgroundColor: meta.color }]}
-                  />
-                </View>
-                <View style={styles.catMain}>
-                  <View style={styles.catTitleRow}>
-                    <Text style={styles.catTitle}>{status.name}</Text>
-                    <Text style={styles.catPercent}>
-                      {Math.round(status.percent)}%
-                    </Text>
-                  </View>
-                  <Text style={styles.catAmount}>
-                    {formatMoney(status.spent, settings.currency)} de{' '}
-                    {formatMoney(status.monthlyLimit, settings.currency)}
-                  </Text>
-                  <View style={styles.catBar}>
-                    <BudgetBar
-                      percent={status.percent}
-                      color={meta.color}
-                      height={8}
+          {previewCategories.map((status) => {
+            const meta = categoryMeta[status.name] ?? {
+              color: status.color,
+              tint: colors.primarySoft,
+            };
+            return (
+              <View key={status.id} style={styles.catCard}>
+                <View style={styles.catTop}>
+                  <View style={[styles.catIcon, { backgroundColor: meta.tint }]}>
+                    <View
+                      style={[styles.catDot, { backgroundColor: meta.color }]}
                     />
                   </View>
-                  <Text style={styles.catRemain}>
-                    Te quedan{' '}
-                    {formatMoney(
-                      Math.max(status.remaining, 0),
-                      settings.currency
-                    )}
-                  </Text>
+                  <View style={styles.catMain}>
+                    <View style={styles.catTitleRow}>
+                      <Text style={styles.catTitle}>{status.name}</Text>
+                      <Text style={styles.catPercent}>
+                        {Math.round(status.percent)}%
+                      </Text>
+                    </View>
+                    <Text style={styles.catAmount}>
+                      {formatMoney(status.spent, settings.currency)} de{' '}
+                      {formatMoney(status.monthlyLimit, settings.currency)}
+                    </Text>
+                    <View style={styles.catBar}>
+                      <BudgetBar
+                        percent={status.percent}
+                        color={meta.color}
+                        height={8}
+                      />
+                    </View>
+                    <Text style={styles.catRemain}>
+                      Te quedan{' '}
+                      {formatMoney(
+                        Math.max(status.remaining, 0),
+                        settings.currency
+                      )}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          );
-        })}
-      </View>
-
-      <Pressable
-        style={styles.rankQuick}
-        onPress={() => router.push('/constancia')}>
-        <View style={styles.rankQuickTop}>
-          <Text style={styles.rankQuickEyebrow}>Tu constancia</Text>
-          <Text style={styles.rankQuickLink}>Ver todo ›</Text>
+            );
+          })}
         </View>
-        <View style={styles.rankQuickBody}>
-          <RankBadge tier={kda.tier} size={56} />
-          <View style={styles.rankQuickCopy}>
-            <Text style={styles.rankQuickName}>Rango {kda.tier}</Text>
-            <Text style={styles.rankQuickHint}>
-              {kda.nextTier
-                ? `${kda.progressMonths}/${kda.monthsNeeded} meses hacia ${kda.nextTier}`
-                : 'Nivel máximo alcanzado'}
-            </Text>
-            <View style={styles.rankQuickBar}>
-              <BudgetBar
-                percent={rankProgressPercent}
-                color={colors.primaryMid}
-                height={8}
-              />
+
+        <Pressable
+          style={styles.rankQuick}
+          onPress={() => router.push('/constancia')}>
+          <View style={styles.rankQuickTop}>
+            <Text style={styles.rankQuickEyebrow}>Tu constancia</Text>
+            <Text style={styles.rankQuickLink}>Ver todo ›</Text>
+          </View>
+          <View style={styles.rankQuickBody}>
+            <RankBadge tier={kda.tier} size={56} />
+            <View style={styles.rankQuickCopy}>
+              <Text style={styles.rankQuickName}>Rango {kda.tier}</Text>
+              <Text style={styles.rankQuickHint}>
+                {kda.nextTier
+                  ? `${kda.progressMonths}/${kda.monthsNeeded} meses hacia ${kda.nextTier}`
+                  : 'Nivel máximo alcanzado'}
+              </Text>
+              <View style={styles.rankQuickBar}>
+                <BudgetBar
+                  percent={rankProgressPercent}
+                  color={colors.primaryMid}
+                  height={8}
+                />
+              </View>
             </View>
           </View>
-        </View>
-      </Pressable>
+        </Pressable>
+      </View>
     </Screen>
   );
 }
@@ -270,11 +273,18 @@ function formatMonthHeading(date: Date) {
 }
 
 const styles = StyleSheet.create({
+  homeContent: {
+    width: '100%',
+    alignSelf: 'stretch',
+    paddingHorizontal: 20,
+  },
   muted: {
     fontFamily: 'DMSans_400Regular',
     color: colors.inkMuted,
   },
   gateWarn: {
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: colors.warningSoft,
     borderWidth: 1,
     borderColor: '#E7C9A0',
@@ -294,6 +304,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   porteroCard: {
+    width: '100%',
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
@@ -335,6 +347,8 @@ const styles = StyleSheet.create({
     color: '#A3AD97',
   },
   section: {
+    width: '100%',
+    alignSelf: 'stretch',
     marginBottom: 8,
   },
   sectionHeading: {
@@ -354,6 +368,8 @@ const styles = StyleSheet.create({
     color: '#70825E',
   },
   catCard: {
+    width: '100%',
+    alignSelf: 'stretch',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
@@ -412,6 +428,8 @@ const styles = StyleSheet.create({
     color: '#8B9382',
   },
   rankQuick: {
+    width: '100%',
+    alignSelf: 'stretch',
     marginTop: 10,
     backgroundColor: colors.surface,
     borderWidth: 1,
