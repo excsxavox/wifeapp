@@ -31,7 +31,22 @@ type AppGateNativeModule = NativeModule & {
     mode?: string;
   }>;
   clearPendingPackage(): Promise<void>;
-  getLastDetectedPackage(): Promise<{ packageName?: string | null; at?: number }>;
+  setOverlayConfig(json: string): Promise<void>;
+  getPendingExpenses(): Promise<
+    Array<{
+      id: string;
+      packageName: string;
+      label: string;
+      categoryId: number;
+      reason: string;
+      startedAt: number;
+      endedAt: number;
+      status: string;
+      amount: number | null;
+    }>
+  >;
+  removePendingExpense(id: string): Promise<void>;
+  getLastDetectedPackage():Promise<{ packageName?: string | null; at?: number }>;
   listInstalledApps(): Promise<Array<{ label: string; androidPackage: string }>>;
 };
 

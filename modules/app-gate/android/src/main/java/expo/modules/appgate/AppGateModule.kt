@@ -88,6 +88,30 @@ class AppGateModule : Module() {
       GateStore.clearPendingPackage(context)
     }
 
+    AsyncFunction("setOverlayConfig") { json: String ->
+      GateStore.setOverlayConfig(context, json)
+    }
+
+    AsyncFunction("getPendingExpenses") {
+      GateStore.getPendingExpenses(context).map { item ->
+        mapOf(
+          "id" to item.optString("id"),
+          "packageName" to item.optString("packageName"),
+          "label" to item.optString("label"),
+          "categoryId" to item.optInt("categoryId", -1),
+          "reason" to item.optString("reason", ""),
+          "startedAt" to item.optLong("startedAt"),
+          "endedAt" to item.optLong("endedAt"),
+          "status" to item.optString("status", GateStore.STATUS_OPEN),
+          "amount" to if (item.has("amount")) item.optDouble("amount") else null
+        )
+      }
+    }
+
+    AsyncFunction("removePendingExpense") { id: String ->
+      GateStore.removePendingExpense(context, id)
+    }
+
     AsyncFunction("getLastDetectedPackage") {
       GateStore.getLastDetected(context)
     }

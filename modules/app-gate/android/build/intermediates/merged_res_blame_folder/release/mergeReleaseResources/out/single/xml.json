@@ -1,0 +1,6 @@
+[
+    {
+        "merged": "expo.modules.appgate.app-gate-release-2:/xml/gate_accessibility_service.xml",
+        "source": "expo.modules.appgate.app-gate-main-3:/xml/gate_accessibility_service.xml"
+    }
+]

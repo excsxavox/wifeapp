@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Alert,
   AppState,
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -37,7 +36,7 @@ import {
   type AppKind,
 } from '@/src/domain/appCatalog';
 import { setEmergencyPin } from '@/src/domain/pin';
-import { getCompanionAvatar } from '@/src/theme/companions';
+import { AvatarFace } from '@/src/components/AvatarFace';
 import { colors } from '@/src/theme/colors';
 
 type Step = 'welcome' | 'companion' | 'permissions' | 'classify' | 'pin';
@@ -312,8 +311,8 @@ export default function OnboardingScreen() {
           <View>
             <Text style={styles.title}>¿Quién te acompaña?</Text>
             <Text style={styles.body}>
-              Aparecerá al abrir una app vigilada (amigable) y al registrar el
-              gasto (un poco molesto). Puedes cambiarlo después en Ajustes.
+              Este personaje aparece en la burbuja. Se pone más serio a medida
+              que gastas la categoría. En Ajustes puedes cambiarlo por una foto.
             </Text>
             <View style={styles.companionRow}>
               {(
@@ -329,10 +328,7 @@ export default function OnboardingScreen() {
                     styles.companionCard,
                     companionRole === option.role && styles.companionCardActive,
                   ]}>
-                  <Image
-                    source={getCompanionAvatar(option.role, 'friendly')}
-                    style={styles.companionImage}
-                  />
+                  <AvatarFace role={option.role} mood="happy" size={96} />
                   <Text style={styles.companionLabel}>{option.label}</Text>
                 </Pressable>
               ))}
@@ -802,12 +798,6 @@ const styles = StyleSheet.create({
   companionCardActive: {
     borderColor: colors.primary,
     backgroundColor: colors.primarySoft,
-  },
-  companionImage: {
-    width: '100%',
-    height: 140,
-    borderRadius: 12,
-    backgroundColor: '#111',
   },
   companionLabel: {
     marginTop: 10,

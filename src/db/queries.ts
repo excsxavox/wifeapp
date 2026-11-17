@@ -97,6 +97,8 @@ export async function getSettings(): Promise<AppSettings> {
     emergencyPinSet: map.emergencyPinSet === '1',
     setupComplete: map.setupComplete === '1',
     companionRole: map.companionRole === 'esposo' ? 'esposo' : 'esposa',
+    avatarSource: map.avatarSource === 'photo' ? 'photo' : 'pixel',
+    avatarPhotoUri: map.avatarPhotoUri ?? '',
   };
 }
 

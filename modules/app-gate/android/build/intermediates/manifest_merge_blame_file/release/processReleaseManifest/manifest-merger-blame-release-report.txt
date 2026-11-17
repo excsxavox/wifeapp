@@ -1,0 +1,62 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="expo.modules.appgate" >
+4
+5    <uses-sdk android:minSdkVersion="24" />
+5-->INJECTED
+5-->INJECTED
+6
+7    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+7-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:2:3-76
+7-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:2:20-73
+8    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+8-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:3:3-75
+8-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:3:20-72
+9    <uses-permission android:name="android.permission.REORDER_TASKS" />
+9-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:4:3-70
+9-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:4:20-67
+10
+11    <application>
+11-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:6:3-27:17
+12        <service
+12-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:7:5-17:15
+13            android:name="expo.modules.appgate.GateAccessibilityService"
+13-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:8:7-47
+14            android:exported="true"
+14-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:9:7-30
+15            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE" >
+15-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:10:7-73
+16            <intent-filter>
+16-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:11:7-13:23
+17                <action android:name="android.accessibilityservice.AccessibilityService" />
+17-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:12:9-84
+17-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:12:17-81
+18            </intent-filter>
+19
+20            <meta-data
+20-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:14:7-16:62
+21                android:name="android.accessibilityservice"
+21-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:15:9-52
+22                android:resource="@xml/gate_accessibility_service" />
+22-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:16:9-59
+23        </service>
+24
+25        <activity
+25-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:19:5-26:69
+26            android:name="expo.modules.appgate.GateActivity"
+26-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:20:7-35
+27            android:excludeFromRecents="true"
+27-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:22:7-40
+28            android:exported="true"
+28-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:21:7-30
+29            android:launchMode="singleTask"
+29-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:23:7-38
+30            android:showWhenLocked="true"
+30-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:24:7-36
+31            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+31-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:26:7-66
+32            android:turnScreenOn="true" />
+32-->D:\Proyectos\wifeapp\modules\app-gate\android\src\main\AndroidManifest.xml:25:7-34
+33    </application>
+34
+35</manifest>

@@ -45,24 +45,32 @@ App móvil para **controlar el gasto**: presupuesto por categoría, registro con
 
 Sin Accesibilidad + al menos una app vigilada, el portero no actúa.
 
-### Portero (Android)
+### Portero (Android) — burbuja flotante
+
+El portero ya no abre una pantalla completa. Tu compañero/a (esposa o esposo,
+según Ajustes) aparece como una **burbuja pequeña con globo de diálogo** encima
+de la app, que puedes seguir usando debajo.
 
 ```
 Usuario abre app vigilada (ej. Pichincha)
         ↓
-WifeApp pregunta solo: categoría + motivo
-   · «Continuar» → entra a la app
-   · «Solo ver» → entra y al salir NO pide monto
-   · Cancelar → no entra
+Burbuja: «¿Vas a gastar en Pichincha?» + categorías
+   · «Voy a gastar» → al salir pregunta el monto
+   · «Solo mirar»  → al salir NO pregunta nada
+   · ✕ / ignorarla → se encoge a un avatar; al salir igual pregunta
         ↓
-Usuario usa la app vigilada
+Al cerrar o cambiar de app (si no eligió «Solo mirar»)
         ↓
-Al cerrar o cambiar de app (si no eligió «Solo ver»)
-        ↓
-WifeApp pregunta: ¿cuánto gastaste?
-   · Registra monto (PIN si supera presupuesto)
-   · o «No gasté nada»
+Burbuja: «¿Cuánto fue y de qué fue?» (monto + motivo)
+   · Guardar → se importa al abrir WifeApp
+     (si supera el presupuesto queda pendiente hasta confirmarlo con PIN)
+   · «No gasté nada»
+   · ✕ → queda PENDIENTE: la burbuja vuelve a recordarlo cada ~20 min
+     y aparece en el Resumen como «gastos por confirmar»
 ```
+
+Si vuelves a la misma app en menos de 3 minutos (p. ej. para copiar un código),
+la visita continúa sin volver a preguntar.
 
 ---
 
@@ -79,7 +87,7 @@ WifeApp pregunta: ¿cuánto gastaste?
 | `/historial` | Movimientos del período |
 | `/ajustes` | PIN, moneda, permisos del portero |
 | `/apps-vigiladas` | Apps vigiladas + lista de instaladas del celular |
-| `/gate` | Modal del portero |
+| `/gate` | Confirmar un gasto pendiente (desde el Resumen) |
 
 ---
 
@@ -119,7 +127,7 @@ wifeapp/
 │   ├── components/
 │   └── theme/
 ├── modules/app-gate/         # Módulo nativo Android
-│   └── android/...           # AccessibilityService, GateActivity, GateStore
+│   └── android/...           # AccessibilityService, GateOverlay (burbuja), GateStore
 ├── plugins/withAppGate.js    # Permisos overlay + QUERY_ALL_PACKAGES
 ├── eas.json
 ├── app.json
@@ -195,7 +203,7 @@ npx expo run:android
 3. **Ajustes del celular → Accesibilidad → WifeApp → Activar.**  
 4. (Recomendado) permitir “mostrar sobre otras apps”.  
 5. En onboarding / Apps vigiladas, marcar p. ej. **Pichincha Banca Móvil** (`com.yellowpepper.pichincha`) como **Banca**.  
-6. Abrir esa app → debe aparecer el modal de WifeApp.
+6. Abrir esa app → debe aparecer la burbuja de tu compañero/a.
 
 Si no aparece: **Ajustes → Apps vigiladas → Última app detectada** para ver el package real y agregarlo.
 

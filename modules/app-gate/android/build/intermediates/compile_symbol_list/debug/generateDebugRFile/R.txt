@@ -1,0 +1,6 @@
+int drawable companion_esposa 0x0
+int drawable companion_esposa_molesta 0x0
+int drawable companion_esposo 0x0
+int drawable companion_esposo_molesto 0x0
+int string gate_accessibility_description 0x0
+int xml gate_accessibility_service 0x0

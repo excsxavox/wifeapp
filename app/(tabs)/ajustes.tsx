@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
-  Image,
   Platform,
   Pressable,
   StyleSheet,
@@ -9,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 
 import {
   getGatePermissions,
@@ -17,20 +17,28 @@ import {
   openOverlaySettings,
   type GatePermissions,
 } from '@/modules/app-gate';
+import { AvatarFace } from '@/src/components/AvatarFace';
 import { Field } from '@/src/components/Field';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
 import { Screen } from '@/src/components/Screen';
 import { useBudget } from '@/src/context/BudgetContext';
 import { setSetting } from '@/src/db/queries';
 import type { CompanionRole } from '@/src/db/types';
+import { saveCompanionPhoto } from '@/src/domain/avatar';
 import { ensureNotificationPermissions } from '@/src/domain/notifications';
 import { setEmergencyPin } from '@/src/domain/pin';
-import { getCompanionAvatar } from '@/src/theme/companions';
+import {
+  COMPANION_MOODS,
+  companionPhotoUri,
+  moodFromRatio,
+  moodLabel,
+  worstSpentRatio,
+} from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
 
 export default function AjustesScreen() {
   const router = useRouter();
-  const { settings, reloadSettings, refresh } = useBudget();
+  const { settings, statuses, reloadSettings, refresh } = useBudget();
   const [pin, setPin] = useState('');
   const [confirm, setConfirm] = useState('');
   const [currency, setCurrency] = useState(settings.currency);
@@ -101,18 +109,109 @@ export default function AjustesScreen() {
     await reloadSettings();
   };
 
+  const pickAvatar = async (fromCamera: boolean) => {
+    const permission = fromCamera
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        'Permiso necesario',
+        fromCamera
+          ? 'Sin la cámara no puedo tomar la foto del avatar.'
+          : 'Sin acceso a las fotos no puedo usar esa imagen.'
+      );
+      return;
+    }
+    const result = fromCamera
+      ? await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.7,
+        })
+      : await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.7,
+        });
+    if (result.canceled || !result.assets[0]) return;
+    try {
+      const uri = await saveCompanionPhoto(result.assets[0].uri);
+      await setSetting('avatarPhotoUri', uri);
+      await setSetting('avatarSource', 'photo');
+      await reloadSettings();
+    } catch (error) {
+      Alert.alert(
+        'No se pudo guardar la foto',
+        error instanceof Error ? error.message : 'Prueba con otra imagen.'
+      );
+    }
+  };
+
+  const usePixelAvatar = async () => {
+    await setSetting('avatarSource', 'pixel');
+    await reloadSettings();
+  };
+
+  const useSavedPhoto = async () => {
+    await setSetting('avatarSource', 'photo');
+    await reloadSettings();
+  };
+
+  const photoUri = companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri);
+  const ratio = worstSpentRatio(statuses);
+  const mood = moodFromRatio(ratio);
+  const percent = Math.round(ratio * 100);
+
   return (
     <Screen title="Ajustes" subtitle="Código de emergencia, permisos y período.">
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Compañero / compañera</Text>
+        <Text style={styles.cardTitle}>Avatar</Text>
         <Text style={styles.cardBody}>
-          Quién aparece al abrir una app vigilada y al preguntar el gasto.
+          La burbuja usa este rostro. Chica o chico cambia el dibujo y cómo te
+          habla. Con el avatar pixelado, la cara sigue lo gastado en la
+          categoría: tranquilo hasta 45%, atento hasta 70%, molesto hasta 85%,
+          enojado hasta 100% y furioso si te pasas. Si pones una foto, el aro
+          y el gesto marcan ese mismo enojo.
         </Text>
+        <View style={styles.preview}>
+          <AvatarFace
+            role={settings.companionRole}
+            mood={mood}
+            photoUri={photoUri}
+            size={92}
+          />
+          <View style={styles.previewCopy}>
+            <Text style={styles.previewTitle}>
+              {moodLabel(settings.companionRole, mood)}
+            </Text>
+            <Text style={styles.previewBody}>
+              {statuses.length === 0
+                ? 'Todavía no hay presupuesto para medir el enojo.'
+                : `La categoría más gastada va al ${percent}%.`}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.moodRow}>
+          {COMPANION_MOODS.map((item) => (
+            <View key={item} style={styles.moodItem}>
+              <AvatarFace
+                role={settings.companionRole}
+                mood={item}
+                photoUri={photoUri}
+                size={44}
+              />
+              <Text style={styles.moodLabel}>
+                {moodLabel(settings.companionRole, item)}
+              </Text>
+            </View>
+          ))}
+        </View>
         <View style={styles.companionRow}>
           {(
             [
-              { role: 'esposa' as const, label: 'Esposa' },
-              { role: 'esposo' as const, label: 'Esposo' },
+              { role: 'esposa' as const, label: 'Chica' },
+              { role: 'esposo' as const, label: 'Chico' },
             ] as const
           ).map((option) => (
             <Pressable
@@ -123,14 +222,35 @@ export default function AjustesScreen() {
                 settings.companionRole === option.role &&
                   styles.companionCardActive,
               ]}>
-              <Image
-                source={getCompanionAvatar(option.role, 'friendly')}
-                style={styles.companionImage}
-              />
+              <AvatarFace role={option.role} mood="happy" size={72} />
               <Text style={styles.companionLabel}>{option.label}</Text>
             </Pressable>
           ))}
         </View>
+        <PrimaryButton
+          label="Elegir foto"
+          onPress={() => pickAvatar(false)}
+          style={{ marginBottom: 8 }}
+        />
+        <PrimaryButton
+          label="Tomar foto"
+          variant="secondary"
+          onPress={() => pickAvatar(true)}
+          style={{ marginBottom: 8 }}
+        />
+        {settings.avatarSource === 'photo' ? (
+          <PrimaryButton
+            label="Volver al avatar pixelado"
+            variant="ghost"
+            onPress={usePixelAvatar}
+          />
+        ) : settings.avatarPhotoUri ? (
+          <PrimaryButton
+            label="Volver a usar mi foto"
+            variant="ghost"
+            onPress={useSavedPhoto}
+          />
+        ) : null}
       </View>
 
       <View style={styles.card}>
@@ -196,7 +316,8 @@ export default function AjustesScreen() {
           <Text style={styles.cardTitle}>Portero (obligatorio)</Text>
           <Text style={styles.cardBody}>
             Sin Accesibilidad, WifeApp no puede preguntarte al abrir el banco u
-            otras apps.
+            otras apps. Si el celular dice que no funciona correctamente, entra
+            otra vez y vuelve a activarla.
             {'\n\n'}
             1. Accesibilidad:{' '}
             {perms.accessibilityEnabled ? '✓ activa' : '✗ falta activar'}
@@ -296,15 +417,46 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     backgroundColor: colors.primarySoft,
   },
-  companionImage: {
-    width: '100%',
-    height: 110,
-    borderRadius: 10,
-    backgroundColor: '#111',
-  },
   companionLabel: {
     marginTop: 8,
     fontFamily: 'DMSans_700Bold',
     color: colors.ink,
+  },
+  preview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  previewCopy: {
+    flex: 1,
+  },
+  previewTitle: {
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 16,
+    color: colors.ink,
+  },
+  previewBody: {
+    marginTop: 4,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 13,
+    color: colors.inkMuted,
+    lineHeight: 18,
+  },
+  moodRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 14,
+  },
+  moodItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  moodLabel: {
+    marginTop: 4,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 9,
+    color: colors.inkMuted,
+    textAlign: 'center',
   },
 });

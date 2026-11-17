@@ -1,0 +1,48 @@
+{
+    "logs": [
+        {
+            "outputFile": "expo.modules.appgate.app-gate-mergeReleaseResources-0:/values/values.xml",
+            "map": [
+                {
+                    "source": "D:\\Proyectos\\wifeapp\\modules\\app-gate\\android\\src\\main\\res\\values\\strings.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "2",
+                        "startOffsets": "55",
+                        "endColumns": "190",
+                        "endOffsets": "243"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "192",
+                        "endOffsets": "243"
+                    }
+                }
+            ]
+        },
+        {
+            "outputFile": "expo.modules.appgate.app-gate-release-2:/values/values.xml",
+            "map": [
+                {
+                    "source": "D:\\Proyectos\\wifeapp\\modules\\app-gate\\android\\src\\main\\res\\values\\strings.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "2",
+                        "startOffsets": "55",
+                        "endColumns": "190",
+                        "endOffsets": "243"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "192",
+                        "endOffsets": "243"
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,7 @@
+expo.modules.appgate
+drawable companion_esposa
+drawable companion_esposa_molesta
+drawable companion_esposo
+drawable companion_esposo_molesto
+string gate_accessibility_description
+xml gate_accessibility_service

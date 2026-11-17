@@ -34,12 +34,16 @@ export type WatchedApp = {
 
 export type CompanionRole = 'esposa' | 'esposo';
 
+export type AvatarSource = 'pixel' | 'photo';
+
 export type AppSettings = {
   monthlyResetDay: number;
   currency: string;
   emergencyPinSet: boolean;
   setupComplete: boolean;
   companionRole: CompanionRole;
+  avatarSource: AvatarSource;
+  avatarPhotoUri: string;
 };
 
 export type CategoryBudgetStatus = Category & {

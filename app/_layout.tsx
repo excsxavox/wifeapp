@@ -16,11 +16,6 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import {
-  getGateSession,
-  getPendingGate,
-  isAppGateAvailable,
-} from '@/modules/app-gate';
 import { BudgetProvider, useBudget } from '@/src/context/BudgetContext';
 import { colors } from '@/src/theme/colors';
 
@@ -61,7 +56,6 @@ export default function RootLayout() {
     <BudgetProvider>
       <StatusBar style="dark" />
       <SetupRedirect />
-      <PendingGateRedirect />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
@@ -81,10 +75,8 @@ export default function RootLayout() {
         <Stack.Screen
           name="gate"
           options={{
-            title: 'Portero',
-            presentation: 'fullScreenModal',
-            headerShown: false,
-            gestureEnabled: false,
+            title: 'Confirmar gasto',
+            presentation: 'modal',
           }}
         />
       </Stack>
@@ -101,39 +93,6 @@ function SetupRedirect() {
     if (!settings.setupComplete) {
       router.replace('/onboarding');
     }
-  }, [ready, settings.setupComplete, router]);
-
-  return null;
-}
-
-function PendingGateRedirect() {
-  const router = useRouter();
-  const { ready, settings } = useBudget();
-
-  useEffect(() => {
-    if (!ready || !settings.setupComplete) return;
-    if (!isAppGateAvailable()) return;
-    let active = true;
-    (async () => {
-      const pending = await getPendingGate();
-      if (active && pending.packageName) {
-        router.push({
-          pathname: '/gate',
-          params: { package: pending.packageName, mode: pending.mode },
-        });
-        return;
-      }
-      const session = await getGateSession();
-      if (active && session?.needsSettle) {
-        router.push({
-          pathname: '/gate',
-          params: { package: session.packageName, mode: 'settle' },
-        });
-      }
-    })();
-    return () => {
-      active = false;
-    };
   }, [ready, settings.setupComplete, router]);
 
   return null;

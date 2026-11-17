@@ -10,6 +10,7 @@ import { useBudget } from '@/src/context/BudgetContext';
 import { parseAmount } from '@/src/domain/money';
 import { verifyEmergencyPin } from '@/src/domain/pin';
 import { colors } from '@/src/theme/colors';
+import { companionPhotoUri } from '@/src/theme/companions';
 
 export default function RegistrarScreen() {
   const { categories, addExpense, checkWouldExceed, settings } = useBudget();
@@ -83,7 +84,11 @@ export default function RegistrarScreen() {
     <Screen
       title="Registrar gasto"
       subtitle="Separa comida, mensuales y el resto desde el celular.">
-      <CompanionPrompt role={settings.companionRole} mood="friendly" />
+      <CompanionPrompt
+        role={settings.companionRole}
+        mood="happy"
+        photoUri={companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri)}
+      />
       <Text style={styles.label}>Categoría</Text>
       <View style={styles.chips}>
         {categories.map((category) => (

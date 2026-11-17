@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "expo.modules.appgate.app-gate-release-2:/drawable-nodpi-v4/companion_esposo_molesto.jpg",
+        "source": "expo.modules.appgate.app-gate-main-3:/drawable-nodpi/companion_esposo_molesto.jpg"
+    },
+    {
+        "merged": "expo.modules.appgate.app-gate-release-2:/drawable-nodpi-v4/companion_esposo.png",
+        "source": "expo.modules.appgate.app-gate-main-3:/drawable-nodpi/companion_esposo.png"
+    },
+    {
+        "merged": "expo.modules.appgate.app-gate-release-2:/drawable-nodpi-v4/companion_esposa.png",
+        "source": "expo.modules.appgate.app-gate-main-3:/drawable-nodpi/companion_esposa.png"
+    },
+    {
+        "merged": "expo.modules.appgate.app-gate-release-2:/drawable-nodpi-v4/companion_esposa_molesta.jpg",
+        "source": "expo.modules.appgate.app-gate-main-3:/drawable-nodpi/companion_esposa_molesta.jpg"
+    }
+]

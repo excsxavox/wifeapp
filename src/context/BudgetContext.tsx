@@ -22,7 +22,14 @@ import { buildCategoryStatus, wouldExceedBudget } from '@/src/domain/budget';
 import { formatPeriodLabel, getPeriodEnd, getPeriodStart } from '@/src/domain/month';
 import { notifyBudgetThresholds } from '@/src/domain/notifications';
 import { isPinSet } from '@/src/domain/pin';
-import { syncWatchedAppsToNative } from '@/modules/app-gate';
+import {
+  getPendingExpenses,
+  removePendingExpense,
+  setOverlayConfig,
+  syncWatchedAppsToNative,
+  type PendingExpense,
+} from '@/modules/app-gate';
+import { AppState } from 'react-native';
 
 type BudgetContextValue = {
   ready: boolean;
@@ -32,6 +39,9 @@ type BudgetContextValue = {
   expenses: ExpenseWithCategory[];
   watchedApps: WatchedApp[];
   savingsGoals: SavingsGoal[];
+  /** Expenses the floating bubble still needs confirmed (no amount, or needs PIN). */
+  pendingExpenses: PendingExpense[];
+  dismissPending: (id: string) => Promise<void>;
   primaryGoal: SavingsGoal | null;
   settings: AppSettings;
   periodLabel: string;
@@ -87,12 +97,15 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   const [expenses, setExpenses] = useState<ExpenseWithCategory[]>([]);
   const [watchedApps, setWatchedApps] = useState<WatchedApp[]>([]);
   const [savingsGoals, setSavingsGoals] = useState<SavingsGoal[]>([]);
+  const [pendingExpenses, setPendingExpenses] = useState<PendingExpense[]>([]);
   const [settings, setSettings] = useState<AppSettings>({
     monthlyResetDay: 1,
     currency: 'USD',
     emergencyPinSet: false,
     setupComplete: false,
     companionRole: 'esposa',
+    avatarSource: 'pixel',
+    avatarPhotoUri: '',
   });
 
   const [initError, setInitError] = useState<string | null>(null);
@@ -114,6 +127,16 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         console.warn('PIN storage unavailable', pinError);
       }
       const nextSettings = { ...sett, emergencyPinSet: pinConfigured };
+      let pending: PendingExpense[] = [];
+      try {
+        pending = await importReportedExpenses(
+          cats,
+          nextSettings.monthlyResetDay,
+          nextSettings.currency
+        );
+      } catch (pendingError) {
+        console.warn('Pending expenses import skipped', pendingError);
+      }
       const spent = await queries.getSpentByCategory(nextSettings.monthlyResetDay);
       const list = await queries.getExpensesForPeriod(nextSettings.monthlyResetDay);
 
@@ -123,6 +146,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       setExpenses(list);
       setWatchedApps(watched);
       setSavingsGoals(goals);
+      setPendingExpenses(pending);
       try {
         await syncWatchedAppsToNative(
           watched.filter((a) => a.enabled).map((a) => a.androidPackage)
@@ -144,6 +168,16 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     refresh().catch(() => {
       // initError already set
     });
+  }, [refresh]);
+
+  // Coming back to the app: pick up whatever the bubble collected meanwhile.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        refresh().catch(() => undefined);
+      }
+    });
+    return () => sub.remove();
   }, [refresh]);
 
   const statuses = useMemo(
@@ -313,6 +347,41 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     [refresh]
   );
 
+  const dismissPending = useCallback(
+    async (id: string) => {
+      await removePendingExpense(id);
+      await refresh();
+    },
+    [refresh]
+  );
+
+  // Keep the native bubble in sync: companion, app labels, budget left.
+  useEffect(() => {
+    if (!ready) return;
+    setOverlayConfig({
+      role: settings.companionRole,
+      currency: settings.currency,
+      reminderMinutes: 20,
+      apps: watchedApps
+        .filter((a) => a.enabled)
+        .map((a) => ({
+          packageName: a.androidPackage,
+          label: a.label,
+          categoryId: a.categoryId ?? -1,
+        })),
+      categories: statuses.map((s) => ({
+        id: s.id,
+        name: s.name,
+        remaining: s.remaining,
+        spent: s.spent,
+        limit: s.monthlyLimit,
+      })),
+      avatarSource: settings.avatarSource,
+      avatarPhotoUri:
+        settings.avatarSource === 'photo' ? settings.avatarPhotoUri : '',
+    }).catch((error) => console.warn('Overlay config sync skipped', error));
+  }, [ready, settings.companionRole, settings.currency, settings.avatarSource, settings.avatarPhotoUri, watchedApps, statuses]);
+
   const primaryGoal = savingsGoals[0] ?? null;
 
   const value: BudgetContextValue = {
@@ -323,6 +392,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     expenses,
     watchedApps,
     savingsGoals,
+    pendingExpenses,
+    dismissPending,
     primaryGoal,
     settings,
     periodLabel,
@@ -347,6 +418,56 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   return (
     <BudgetContext.Provider value={value}>{children}</BudgetContext.Provider>
   );
+}
+
+/**
+ * Imports amounts the user typed in the floating bubble. Anything that would
+ * blow a category's budget stays pending so it gets confirmed with the PIN.
+ * Returns what is still pending.
+ */
+async function importReportedExpenses(
+  categories: Category[],
+  monthlyResetDay: number,
+  currency: string
+): Promise<PendingExpense[]> {
+  const all = await getPendingExpenses();
+  const reported = all.filter((p) => p.status === 'reported' && p.amount != null);
+  if (reported.length === 0) return all;
+
+  const before = await queries.getSpentByCategory(monthlyResetDay);
+  const running = { ...before };
+  const imported = new Set<string>();
+
+  for (const item of reported) {
+    const category =
+      categories.find((c) => c.id === item.categoryId) ?? categories[0];
+    if (!category || item.amount == null) continue;
+    const spent = running[category.id] ?? 0;
+    if (wouldExceedBudget(spent, category.monthlyLimit, item.amount)) continue;
+
+    await queries.addExpense({
+      categoryId: category.id,
+      amount: item.amount,
+      reason: item.reason || `Gasto en ${item.label}`,
+      source: 'gate',
+      appPackage: item.packageName || null,
+      createdAt: new Date(item.endedAt || Date.now()).toISOString(),
+    });
+    await removePendingExpense(item.id);
+    running[category.id] = spent + item.amount;
+    imported.add(item.id);
+  }
+
+  if (imported.size > 0) {
+    const nextStatuses = categories.map((c) =>
+      buildCategoryStatus(c, running[c.id] ?? 0)
+    );
+    await notifyBudgetThresholds(nextStatuses, currency, before).catch(
+      () => undefined
+    );
+  }
+
+  return all.filter((p) => !imported.has(p.id));
 }
 
 export function useBudget() {

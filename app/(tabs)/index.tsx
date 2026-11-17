@@ -16,9 +16,11 @@ import {
 } from '@/modules/app-gate';
 import { BudgetBar } from '@/src/components/BudgetBar';
 import { GoalProgressCard } from '@/src/components/GoalProgressCard';
+import { PendingExpensesCard } from '@/src/components/PendingExpensesCard';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
 import { Screen } from '@/src/components/Screen';
 import { useBudget } from '@/src/context/BudgetContext';
+import { companionPhotoUri, moodFromRatio, worstSpentRatio } from '@/src/theme/companions';
 import { computeKdaMetrics } from '@/src/domain/kda';
 import { formatMoney } from '@/src/domain/money';
 import { categoryMeta, colors } from '@/src/theme/colors';
@@ -31,6 +33,8 @@ export default function ResumenScreen() {
     statuses,
     expenses,
     watchedApps,
+    pendingExpenses,
+    categories,
     primaryGoal,
     periodLabel,
     totalBudget,
@@ -121,7 +125,7 @@ export default function ResumenScreen() {
         <View style={styles.gateWarn}>
           <Text style={styles.gateWarnTitle}>Portero apagado</Text>
           <Text style={styles.gateWarnBody}>
-            Falta Accesibilidad. Sin eso no saldrá el modal al abrir tus apps.
+            Falta Accesibilidad. Sin eso no aparecerá tu compañero al abrir tus apps.
           </Text>
           <PrimaryButton
             label="Activar Accesibilidad ahora"
@@ -129,6 +133,18 @@ export default function ResumenScreen() {
           />
         </View>
       ) : null}
+
+      <PendingExpensesCard
+        items={pendingExpenses}
+        categories={categories}
+        role={settings.companionRole}
+        currency={settings.currency}
+        photoUri={companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri)}
+        mood={moodFromRatio(worstSpentRatio(statuses))}
+        onConfirm={(item) =>
+          router.push({ pathname: '/gate', params: { pendingId: item.id } })
+        }
+      />
 
       <View style={styles.balanceCard}>
         <View style={styles.balanceTop}>

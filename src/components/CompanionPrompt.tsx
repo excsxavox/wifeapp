@@ -1,8 +1,8 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { AvatarFace } from '@/src/components/AvatarFace';
 import type { CompanionRole } from '@/src/db/types';
 import {
-  getCompanionAvatar,
   getCompanionCopy,
   type CompanionMood,
 } from '@/src/theme/companions';
@@ -13,22 +13,21 @@ type Props = {
   mood?: CompanionMood;
   title?: string;
   subtitle?: string;
+  photoUri?: string | null;
 };
 
 export function CompanionPrompt({
   role,
-  mood = 'friendly',
+  mood = 'happy',
   title,
   subtitle,
+  photoUri,
 }: Props) {
   const copy = getCompanionCopy(role, mood);
+  const stern = mood === 'annoyed' || mood === 'angry' || mood === 'furious';
   return (
-    <View style={[styles.wrap, mood === 'annoyed' && styles.wrapAnnoyed]}>
-      <Image
-        source={getCompanionAvatar(role, mood)}
-        style={styles.avatar}
-        resizeMode="cover"
-      />
+    <View style={[styles.wrap, stern && styles.wrapAnnoyed]}>
+      <AvatarFace role={role} mood={mood} photoUri={photoUri} size={64} />
       <View style={styles.bubble}>
         <Text style={styles.title}>{title ?? copy.title}</Text>
         <Text style={styles.subtitle}>{subtitle ?? copy.subtitle}</Text>
@@ -54,12 +53,6 @@ const styles = StyleSheet.create({
   wrapAnnoyed: {
     backgroundColor: '#F8F1E8',
     borderColor: '#EBD9C4',
-  },
-  avatar: {
-    width: 78,
-    height: 92,
-    borderRadius: 14,
-    backgroundColor: '#111',
   },
   bubble: {
     flex: 1,

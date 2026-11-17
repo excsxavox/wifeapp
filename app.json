@@ -81,6 +81,14 @@
           "color": "#1B4D3E"
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "WifeApp usa la foto solo como avatar de tu pareja, en este teléfono.",
+          "cameraPermission": "WifeApp usa la cámara solo para la foto del avatar.",
+          "microphonePermission": false
+        }
+      ],
       "./plugins/withAppGate.js",
       "expo-font"
     ],

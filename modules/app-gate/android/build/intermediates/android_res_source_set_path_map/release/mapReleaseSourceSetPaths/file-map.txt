@@ -1,0 +1,9 @@
+expo.modules.appgate.app-gate-pngs-0 D:\Proyectos\wifeapp\modules\app-gate\android\build\generated\res\pngs\release
+expo.modules.appgate.app-gate-updated_navigation_xml-1 D:\Proyectos\wifeapp\modules\app-gate\android\build\generated\updated_navigation_xml\release
+expo.modules.appgate.app-gate-mergeReleaseResources-2 D:\Proyectos\wifeapp\modules\app-gate\android\build\intermediates\incremental\release\mergeReleaseResources\merged.dir
+expo.modules.appgate.app-gate-mergeReleaseResources-3 D:\Proyectos\wifeapp\modules\app-gate\android\build\intermediates\incremental\release\mergeReleaseResources\stripped.dir
+expo.modules.appgate.app-gate-release-4 D:\Proyectos\wifeapp\modules\app-gate\android\build\intermediates\merged_res\release\mergeReleaseResources
+expo.modules.appgate.app-gate-release-5 D:\Proyectos\wifeapp\modules\app-gate\android\build\intermediates\packaged_res\release\packageReleaseResources
+expo.modules.appgate.app-gate-main-6 D:\Proyectos\wifeapp\modules\app-gate\android\src\main\res
+expo.modules.appgate.app-gate-release-7 D:\Proyectos\wifeapp\modules\app-gate\android\src\release\res
+gradleHome-0 C:\Users\CarlosGabrielReveloL\.gradle
