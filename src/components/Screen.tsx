@@ -26,6 +26,8 @@ type Props = {
   showHeading?: boolean;
   /** Sin padding horizontal ni safe-area superior (hero a ancho completo). */
   edgeToEdge?: boolean;
+  /** Page background (defaults to the app background). */
+  background?: string;
 };
 
 export function Screen({
@@ -41,7 +43,9 @@ export function Screen({
   brandMinimal = false,
   showHeading = true,
   edgeToEdge = false,
+  background,
 }: Props) {
+  const bg = background ? { backgroundColor: background } : null;
   const brand = showBrand ? (
     <View style={styles.brandWrap}>
       <AppTopBar minimal={brandMinimal} showCaption={!brandMinimal} />
@@ -69,7 +73,7 @@ export function Screen({
     style,
   ];
 
-  const safeStyle = [styles.safe, edgeToEdge ? styles.safeEdgeToEdge : null];
+  const safeStyle = [styles.safe, edgeToEdge ? styles.safeEdgeToEdge : null, bg];
 
   if (!scroll) {
     return (
@@ -87,7 +91,7 @@ export function Screen({
     <SafeAreaView style={safeStyle} edges={[...edges]}>
       {brand}
       <ScrollView
-        style={styles.scroll}
+        style={[styles.scroll, bg]}
         contentContainerStyle={bodyStyle}
         keyboardShouldPersistTaps="handled"
         refreshControl={

@@ -217,15 +217,16 @@ export default function AjustesScreen() {
           habla. Puedes elegir el dibujo pixelado, la versión adulta o una
           foto. El dibujo cambia de cara según lo gastado: tranquilo hasta 45%,
           atento hasta 70%, molesto hasta 85%, enojado hasta 100% y furioso si
-          te pasas. Si pones una foto, esa misma imagen sale en toda la app y
-          el emoji marca el enojo.
+          te pasas. Si pones una foto, la imagen cabe entera y la palabra
+          bajo el retrato marca el enojo.
         </Text>
         <View style={styles.preview}>
           <AvatarFace
             role={settings.companionRole}
             mood={mood}
             photoUri={photoUri}
-            size={92}
+            size={108}
+            showLabel
           />
           <View style={styles.previewCopy}>
             <Text style={styles.previewTitle}>

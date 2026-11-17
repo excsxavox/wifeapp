@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
     "@expo-google-fonts/dm-sans": "^0.4.2",
+    "@expo-google-fonts/figtree": "^0.4.1",
     "@expo-google-fonts/fraunces": "^0.4.1",
     "@expo-google-fonts/manrope": "^0.4.3",
     "app-gate": "file:modules/app-gate",

@@ -1,10 +1,19 @@
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
 import { AvatarFace } from '@/src/components/AvatarFace';
+import { PrimaryButton } from '@/src/components/PrimaryButton';
 import type { CompanionRole } from '@/src/db/types';
 import { useBudget } from '@/src/context/BudgetContext';
-import { avatarVariant, getCompanionAvatar, type CompanionMood } from '@/src/theme/companions';
+import { formatMoney } from '@/src/domain/money';
+import type { CompanionMood } from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
 
 const HERO = '#FFB27A';
@@ -32,15 +41,20 @@ export function HomeHeroCard({
   alertCount = 0,
   onPressAlerts,
 }: Props) {
-  const { settings } = useBudget();
-  const variant = avatarVariant(settings.avatarSource);
-  const amount = formatHeroAmount(Math.max(available, 0));
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const wide = width >= 700;
+  const { statuses, categories, watchedApps, totalSpent } = useBudget();
+  const heaviest = heaviestCategory(statuses);
+  const watchedCount = watchedApps.filter((app) => app.enabled).length;
+  const amount = formatHeroAmount(Math.abs(available));
 
   return (
     <View style={styles.card}>
       <View style={styles.top}>
         <View style={styles.topBar}>
           <Text style={styles.brand}>WifeApp</Text>
+          <Text style={styles.month}>{monthLabel}</Text>
           <Pressable
             onPress={onPressAlerts}
             hitSlop={10}
@@ -68,36 +82,104 @@ export function HomeHeroCard({
 
         <View style={styles.heroRow}>
           <View style={styles.heroCopy}>
-            <Text style={styles.headline}>Tu dinero,{'\n'}a tu ritmo.</Text>
-            <Text style={styles.month}>{monthLabel}</Text>
+            <Text style={styles.availableLabel}>Disponible este mes</Text>
+            <View style={styles.amountRow}>
+              <Text style={styles.amount}>
+                {available < 0 ? '−' : ''}
+                {amount}
+              </Text>
+              <Text style={styles.currency}>{currency.toUpperCase()}</Text>
+            </View>
+            <Text style={styles.phrase}>
+              {paceLine(heaviest?.name, heaviest?.percent ?? 0, mood)}
+            </Text>
+            <View style={styles.actions}>
+              <PrimaryButton
+                label="Registrar un gasto"
+                onPress={() => router.push('/registrar')}
+                style={styles.action}
+              />
+              <PrimaryButton
+                label="Ver el portero"
+                variant="secondary"
+                onPress={() => router.push('/apps-vigiladas')}
+                style={styles.action}
+              />
+            </View>
           </View>
-          {photoUri || variant === 'adult' ? (
+          {wide ? (
+            <View style={styles.bubble}>
+              <Text style={styles.bubbleText}>{bubbleLine(mood)}</Text>
+            </View>
+          ) : null}
+          <View style={[styles.portrait, wide && styles.portraitWide]}>
             <AvatarFace
               role={companionRole}
               mood={mood}
               photoUri={photoUri}
-              variant={variant}
-              size={112}
+              size={wide ? 140 : 112}
+              bare
             />
-          ) : (
-            <Image
-              source={getCompanionAvatar(companionRole, mood, 'pixel')}
-              style={styles.companion}
-              resizeMode="cover"
-            />
-          )}
+          </View>
         </View>
       </View>
 
-      <View style={styles.bottom}>
-        <Text style={styles.availableLabel}>Disponible este mes</Text>
-        <View style={styles.amountRow}>
-          <Text style={styles.amount}>${amount}</Text>
-          <Text style={styles.currency}>{currency.toUpperCase()}</Text>
+      <View style={styles.stats}>
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>
+            {formatMoney(totalSpent, currency)}
+          </Text>
+          <Text style={styles.statLabel}>Gastado</Text>
+        </View>
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>{categories.length}</Text>
+          <Text style={styles.statLabel}>Categorías</Text>
+        </View>
+        <View style={styles.stat}>
+          <Text style={styles.statValue}>{watchedCount}</Text>
+          <Text style={styles.statLabel}>Apps vigiladas</Text>
         </View>
       </View>
     </View>
   );
+}
+
+function heaviestCategory(
+  statuses: { name: string; spent: number; monthlyLimit: number; percent: number }[]
+) {
+  return statuses.reduce<(typeof statuses)[number] | null>((best, item) => {
+    if (!best) return item;
+    return item.percent >= best.percent ? item : best;
+  }, null);
+}
+
+function paceLine(name: string | undefined, percent: number, mood: CompanionMood) {
+  if (!name) {
+    return 'Cuando armes el presupuesto, aquí verás cómo va el mes.';
+  }
+  const pct = Math.round(percent);
+  if (mood === 'furious' || mood === 'angry') {
+    return `${name} va al ${pct}%. Conviene frenar antes de seguir.`;
+  }
+  if (mood === 'annoyed' || mood === 'uneasy') {
+    return `${name} va al ${pct}%. Todavía se puede bajar el ritmo.`;
+  }
+  return `${name} va al ${pct}%. Todavía hay margen si el resto del mes se queda así.`;
+}
+
+function bubbleLine(mood: CompanionMood): string {
+  switch (mood) {
+    case 'uneasy':
+      return 'Vamos bien, pero ojo con el ritmo.';
+    case 'annoyed':
+      return 'Amor, bajemos un poquito el ritmo.';
+    case 'angry':
+      return 'Ya casi no queda margen. Pensémoslo.';
+    case 'furious':
+      return 'Nos pasamos. Hablemos de esto.';
+    default:
+      return 'Vamos bien, amor. Sigue así.';
+  }
 }
 
 function formatHeroAmount(value: number): string {
@@ -118,22 +200,27 @@ const styles = StyleSheet.create({
   },
   top: {
     backgroundColor: HERO,
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 8,
-    minHeight: 188,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 16,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 18,
+    gap: 8,
+    marginBottom: 12,
   },
   brand: {
     fontFamily: 'Manrope_800ExtraBold',
     fontSize: 18,
     color: HERO_INK,
     letterSpacing: -0.3,
+  },
+  month: {
+    flex: 1,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 13,
+    color: HERO_INK_SOFT,
   },
   bellBtn: {
     width: 36,
@@ -162,60 +249,103 @@ const styles = StyleSheet.create({
   heroRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 10,
   },
   heroCopy: {
     flex: 1,
-    paddingBottom: 18,
-  },
-  headline: {
-    fontFamily: 'Manrope_800ExtraBold',
-    fontSize: 30,
-    lineHeight: 34,
-    letterSpacing: -0.9,
-    color: HERO_INK,
-  },
-  month: {
-    marginTop: 10,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 14,
-    color: HERO_INK_SOFT,
-  },
-  companion: {
-    width: 132,
-    height: 152,
-    marginBottom: -4,
-    marginRight: -4,
-  },
-  bottom: {
-    backgroundColor: '#FBFCF8',
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 20,
+    minWidth: 0,
   },
   availableLabel: {
     fontFamily: 'DMSans_500Medium',
     fontSize: 13,
-    color: colors.ink,
+    color: HERO_INK,
   },
   amountRow: {
-    marginTop: 6,
+    marginTop: 2,
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 8,
+    gap: 6,
   },
   amount: {
     fontFamily: 'Manrope_800ExtraBold',
-    fontSize: 42,
-    lineHeight: 48,
-    letterSpacing: -1.4,
+    fontSize: 32,
+    lineHeight: 36,
+    letterSpacing: -1,
     color: HERO_INK,
   },
   currency: {
     fontFamily: 'DMSans_600SemiBold',
+    fontSize: 13,
+    color: HERO_INK_SOFT,
+    marginBottom: 4,
+  },
+  phrase: {
+    marginTop: 8,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 13,
+    lineHeight: 18,
+    color: HERO_INK,
+  },
+  actions: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  action: {
+    minHeight: 36,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  // The circle sits on the white stats strip: the negative bottom margin cancels
+  // the orange area's bottom padding.
+  portrait: {
+    marginRight: 6,
+    marginBottom: -16,
+  },
+  // On wide screens the head rises next to the top bar, so the row is no taller
+  // than the text and there is no empty band above "Disponible este mes".
+  portraitWide: {
+    marginRight: 56,
+    marginTop: -44,
+  },
+  bubble: {
+    alignSelf: 'center',
+    maxWidth: 210,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderBottomRightRadius: 4,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+  },
+  bubbleText: {
+    fontFamily: 'DMSans_600SemiBold',
     fontSize: 14,
+    lineHeight: 19,
+    color: HERO_INK,
+  },
+  stats: {
+    flexDirection: 'row',
+    paddingHorizontal: 8,
+    paddingTop: 12,
+    paddingBottom: 14,
+  },
+  stat: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  statValue: {
+    fontFamily: 'Manrope_800ExtraBold',
+    fontSize: 14,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+  statLabel: {
+    marginTop: 2,
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 11,
     color: colors.inkMuted,
-    marginBottom: 8,
-    letterSpacing: 0.4,
+    textAlign: 'center',
   },
 });

@@ -1,35 +1,44 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AppState,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 
 import {
   isAppGateAvailable,
   openAccessibilitySettings,
   waitForGatePermissions,
+  type PendingExpense,
 } from '@/modules/app-gate';
-import { BudgetBar } from '@/src/components/BudgetBar';
-import { GoalProgressCard } from '@/src/components/GoalProgressCard';
-import { HomeHeroCard } from '@/src/components/HomeHeroCard';
-import { PendingExpensesCard } from '@/src/components/PendingExpensesCard';
+import { AttentionCard, type AttentionItem } from '@/src/components/home/AttentionCard';
+import { CategoryList } from '@/src/components/home/CategoryList';
+import { MonthCard } from '@/src/components/home/MonthCard';
+import { GoalTile, PorteroRow, RankTile } from '@/src/components/home/ProgressTiles';
+import { TodayHero } from '@/src/components/home/TodayHero';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
-import { RankBadge } from '@/src/components/RankBadge';
 import { Screen } from '@/src/components/Screen';
 import { useBudget } from '@/src/context/BudgetContext';
-import { companionPhotoUri, moodFromRatio, worstSpentRatio } from '@/src/theme/companions';
+import type { Category } from '@/src/db/types';
 import { computeKdaMetrics } from '@/src/domain/kda';
-import { formatMoney } from '@/src/domain/money';
-import { categoryMeta, colors } from '@/src/theme/colors';
+import { formatMoneyShort } from '@/src/domain/money';
+import { getPeriodEnd, getPeriodStart } from '@/src/domain/month';
+import { computeMonthPace } from '@/src/domain/today';
+import { colors } from '@/src/theme/colors';
+import { companionPhotoUri, moodFromRatio, worstSpentRatio } from '@/src/theme/companions';
+import { categoryLook, home, homeFonts } from '@/src/theme/home';
+
+/** From this width the screen splits into a main column and a side column. */
+const WIDE_BREAKPOINT = 900;
 
 export default function ResumenScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const wide = width >= WIDE_BREAKPOINT;
   const {
     ready,
     initError,
@@ -53,34 +62,23 @@ export default function ResumenScreen() {
     [expenses, statuses, rank]
   );
 
-  const available = totalBudget - totalSpent;
-  const enabledWatched = watchedApps.filter((a) => a.enabled);
-  const watchedCount = enabledWatched.length;
-  const role = settings.companionRole ?? 'esposa';
-
-  const rankProgressPercent =
-    kda.nextTier && kda.monthsNeeded > 0
-      ? Math.min(100, (kda.progressMonths / kda.monthsNeeded) * 100)
-      : kda.nextTier
-        ? 0
-        : 100;
-
-  const checkGate = useCallback(async () => {
-    if (Platform.OS !== 'android' || !isAppGateAvailable()) {
-      setGateReady(true);
-      return;
-    }
-    const perms = await waitForGatePermissions();
-    setGateReady(perms.accessibilityEnabled);
-  }, []);
-
   useEffect(() => {
-    checkGate();
+    // Off Android there is no gate to check and gateReady starts true.
+    if (Platform.OS !== 'android' || !isAppGateAvailable()) return;
+    let alive = true;
+    const check = () =>
+      waitForGatePermissions().then((perms) => {
+        if (alive) setGateReady(perms.accessibilityEnabled);
+      });
+    check();
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') checkGate();
+      if (state === 'active') check();
     });
-    return () => sub.remove();
-  }, [checkGate]);
+    return () => {
+      alive = false;
+      sub.remove();
+    };
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -115,365 +113,240 @@ export default function ResumenScreen() {
     );
   }
 
-  const monthLabel = formatMonthHeading(new Date());
-  const previewCategories = statuses.slice(0, 3);
+  const now = new Date();
+  const periodStart = getPeriodStart(now, settings.monthlyResetDay);
+  const periodEnd = getPeriodEnd(periodStart, settings.monthlyResetDay);
+  const pace = computeMonthPace({ totalBudget, totalSpent, periodStart, periodEnd, now });
+
+  const role = settings.companionRole ?? 'esposa';
+  const photoUri = companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri);
+  const mood = moodFromRatio(worstSpentRatio(statuses));
+  const watchedCount = watchedApps.filter((a) => a.enabled).length;
+  const isAndroid = Platform.OS === 'android';
+  const monthAtRisk = pace.state !== 'ok';
+
+  const attention: AttentionItem[] = [];
+  if (isAndroid && !gateReady) {
+    attention.push({
+      key: 'gate-off',
+      title: 'Portero apagado',
+      meta: 'Falta Accesibilidad en el teléfono',
+      cta: 'Activar',
+      icon: { ios: 'exclamationmark.shield', android: 'gpp_maybe', web: 'gpp_maybe' },
+      tint: home.badSoft,
+      ink: home.bad,
+      onPress: openAccessibilitySettings,
+    });
+  } else if (isAndroid && watchedCount === 0) {
+    attention.push({
+      key: 'gate-empty',
+      title: 'Portero sin apps',
+      meta: 'Elige qué apps debe cuidar',
+      cta: 'Elegir',
+      icon: { ios: 'shield', android: 'shield', web: 'shield' },
+      tint: home.track,
+      ink: home.ink,
+      onPress: () => router.push('/apps-vigiladas'),
+    });
+  }
+  for (const item of pendingExpenses) {
+    attention.push(
+      pendingItem(item, categories, settings.currency, () =>
+        router.push({ pathname: '/gate', params: { pendingId: item.id } })
+      )
+    );
+  }
+
+  const pendingCount = pendingExpenses.length;
+  const quote =
+    pendingCount > 0
+      ? role === 'esposa'
+        ? `«Amor, ${pendingCount === 1 ? '¿y ese gasto?' : `¿y esos ${pendingCount} gastos?`} No se me olvida.»`
+        : `«${pendingCount === 1 ? '¿Y ese gasto?' : `¿Y esos ${pendingCount} gastos?`} No se me olvida.»`
+      : '«Sin el portero no puedo acompañarte.»';
+  const calmDetail = isAndroid
+    ? `Sin gastos pendientes · portero cuidando ${watchedCount} app${watchedCount === 1 ? '' : 's'}`
+    : 'Sin gastos pendientes';
+
+  const goRegister = () => router.push('/registrar');
+  const goPortero = () => router.push('/apps-vigiladas');
+  const goBudget = () => router.push('/presupuesto');
+  const goGoals = () => router.push('/metas' as never);
+  const goRank = () => router.push('/constancia');
+
+  const hero = (
+    <TodayHero
+      pace={pace}
+      currency={settings.currency}
+      dateLine={formatDateLine(now)}
+      role={role}
+      mood={mood}
+      photoUri={photoUri}
+      alertCount={attention.length}
+      onPressBell={attention[0]?.onPress}
+      wide={wide}
+    />
+  );
+
+  const goal = (
+    <GoalTile
+      goal={primaryGoal}
+      currency={settings.currency}
+      atRisk={monthAtRisk}
+      onPress={goGoals}
+    />
+  );
+  const rankTile = (
+    <RankTile
+      tier={kda.tier}
+      nextTier={kda.nextTier}
+      progressMonths={kda.progressMonths}
+      monthsNeeded={kda.monthsNeeded}
+      atRisk={monthAtRisk}
+      onPress={goRank}
+    />
+  );
+  const attentionCard = (
+    <AttentionCard items={attention} quote={quote} calmDetail={calmDetail} />
+  );
 
   return (
     <Screen
       showBrand={false}
       showHeading={false}
       refreshing={refreshing}
-      onRefresh={onRefresh}>
-      <HomeHeroCard
-        available={available}
-        currency={settings.currency}
-        monthLabel={monthLabel}
-        companionRole={role}
-        photoUri={companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri)}
-        mood={moodFromRatio(worstSpentRatio(statuses))}
-        alertCount={gateReady ? 0 : 1}
-        onPressAlerts={
-          gateReady ? undefined : () => openAccessibilitySettings()
-        }
-      />
-
-      {!gateReady ? (
-        <View style={styles.gateWarn}>
-          <Text style={styles.gateWarnTitle}>Portero apagado</Text>
-          <Text style={styles.gateWarnBody}>
-            Falta Accesibilidad. Sin eso no aparecerá tu compañero al abrir tus apps.
-          </Text>
-          <PrimaryButton
-            label="Activar Accesibilidad ahora"
-            onPress={openAccessibilitySettings}
-          />
-        </View>
-      ) : null}
-
-      <PendingExpensesCard
-        items={pendingExpenses}
-        categories={categories}
-        role={settings.companionRole}
-        currency={settings.currency}
-        photoUri={companionPhotoUri(settings.avatarSource, settings.avatarPhotoUri)}
-        mood={moodFromRatio(worstSpentRatio(statuses))}
-        onConfirm={(item) =>
-          router.push({ pathname: '/gate', params: { pendingId: item.id } })
-        }
-      />
-
-      <Pressable
-        style={styles.porteroCard}
-        onPress={() => router.push('/apps-vigiladas')}>
-        <SymbolView
-          name={{
-            ios: 'checkmark.shield',
-            android: 'verified_user',
-            web: 'verified_user',
-          }}
-          tintColor="#6F825C"
-          size={26}
-          style={styles.porteroIcon}
-        />
-        <View style={styles.porteroCopy}>
-          <Text style={styles.porteroTitle}>
-            {gateReady && watchedCount > 0
-              ? 'Portero activo'
-              : 'Portero en pausa'}
-          </Text>
-          <Text style={styles.porteroBody}>
-            {watchedCount} app{watchedCount === 1 ? '' : 's'} protegida
-            {watchedCount === 1 ? '' : 's'}
-          </Text>
-        </View>
-        <Text style={styles.porteroChevron}>›</Text>
-      </Pressable>
-
-      <GoalProgressCard
-        goal={primaryGoal}
-        currency={settings.currency}
-        availableThisMonth={available}
-        onPress={() => router.push('/metas' as never)}
-      />
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeading}>
-          <Text style={styles.sectionTitle}>Tus categorías</Text>
-          <Pressable onPress={() => router.push('/presupuesto')}>
-            <Text style={styles.textButton}>Ver todo</Text>
-          </Pressable>
-        </View>
-
-        {previewCategories.map((status) => {
-          const meta = categoryMeta[status.name] ?? {
-            color: status.color,
-            tint: colors.primarySoft,
-          };
-          return (
-            <View key={status.id} style={styles.catCard}>
-              <View style={styles.catTop}>
-                <View style={[styles.catIcon, { backgroundColor: meta.tint }]}>
-                  <View
-                    style={[styles.catDot, { backgroundColor: meta.color }]}
-                  />
-                </View>
-                <View style={styles.catMain}>
-                  <View style={styles.catTitleRow}>
-                    <Text style={styles.catTitle}>{status.name}</Text>
-                    <Text style={styles.catPercent}>
-                      {Math.round(status.percent)}%
-                    </Text>
-                  </View>
-                  <Text style={styles.catAmount}>
-                    {formatMoney(status.spent, settings.currency)} de{' '}
-                    {formatMoney(status.monthlyLimit, settings.currency)}
-                  </Text>
-                  <View style={styles.catBar}>
-                    <BudgetBar
-                      percent={status.percent}
-                      color={meta.color}
-                      height={8}
-                    />
-                  </View>
-                  <Text style={styles.catRemain}>
-                    Te quedan{' '}
-                    {formatMoney(
-                      Math.max(status.remaining, 0),
-                      settings.currency
-                    )}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-
-      <Pressable
-        style={styles.rankQuick}
-        onPress={() => router.push('/constancia')}>
-        <View style={styles.rankQuickTop}>
-          <Text style={styles.rankQuickEyebrow}>Tu constancia</Text>
-          <Text style={styles.rankQuickLink}>Ver todo ›</Text>
-        </View>
-        <View style={styles.rankQuickBody}>
-          <RankBadge tier={kda.tier} size={56} />
-          <View style={styles.rankQuickCopy}>
-            <Text style={styles.rankQuickName}>Rango {kda.tier}</Text>
-            <Text style={styles.rankQuickHint}>
-              {kda.nextTier
-                ? `${kda.progressMonths}/${kda.monthsNeeded} meses hacia ${kda.nextTier}`
-                : 'Nivel máximo alcanzado'}
-            </Text>
-            <View style={styles.rankQuickBar}>
-              <BudgetBar
-                percent={rankProgressPercent}
-                color={colors.primaryMid}
-                height={8}
+      onRefresh={onRefresh}
+      background={home.bg}>
+      {wide ? (
+        <View style={styles.wideWrap}>
+          <View style={styles.wideMain}>
+            {hero}
+            <MonthCard
+              pace={pace}
+              totalBudget={totalBudget}
+              totalSpent={totalSpent}
+              currency={settings.currency}
+              onRegister={goRegister}
+              onPortero={goPortero}>
+              <CategoryList
+                statuses={statuses}
+                currency={settings.currency}
+                onSeeAll={goBudget}
+                columns
+                framed={false}
               />
-            </View>
+            </MonthCard>
+          </View>
+          <View style={styles.wideSide}>
+            {attentionCard}
+            {isAndroid ? (
+              <PorteroRow
+                active={gateReady && watchedCount > 0}
+                watchedCount={watchedCount}
+                onPress={goPortero}
+              />
+            ) : null}
+            {goal}
+            {rankTile}
           </View>
         </View>
-      </Pressable>
+      ) : (
+        <View style={styles.stack}>
+          <View>
+            {hero}
+            <MonthCard
+              pace={pace}
+              totalBudget={totalBudget}
+              totalSpent={totalSpent}
+              currency={settings.currency}
+              onRegister={goRegister}
+              onPortero={goPortero}
+            />
+          </View>
+          {attentionCard}
+          <CategoryList statuses={statuses} currency={settings.currency} onSeeAll={goBudget} />
+          <View style={styles.tiles}>
+            {goal}
+            {rankTile}
+          </View>
+        </View>
+      )}
     </Screen>
   );
 }
 
-function formatMonthHeading(date: Date) {
-  const raw = date.toLocaleDateString('es-ES', {
-    month: 'long',
-    year: 'numeric',
-  });
-  return raw.charAt(0).toUpperCase() + raw.slice(1);
+function pendingItem(
+  item: PendingExpense,
+  categories: Category[],
+  currency: string,
+  onPress: () => void
+): AttentionItem {
+  const category = categories.find((c) => c.id === item.categoryId);
+  const look = categoryLook(category?.name ?? '', category?.id ?? 0);
+  const needsPin = item.status === 'reported' && item.amount != null;
+  const title =
+    item.amount != null ? `${item.label} · ${formatMoneyShort(item.amount, currency)}` : item.label;
+  const meta = [
+    timeAgo(item.endedAt || item.startedAt),
+    needsPin ? 'pasa el límite, pide código' : item.amount == null ? 'falta el monto' : category?.name,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return {
+    key: item.id,
+    title,
+    meta,
+    cta: 'Confirmar',
+    icon: look.icon,
+    tint: look.tint,
+    ink: look.ink,
+    onPress,
+  };
+}
+
+function timeAgo(at: number): string {
+  const minutes = Math.max(1, Math.round((Date.now() - at) / 60000));
+  if (minutes < 60) return `Hace ${minutes} min`;
+  if (minutes < 60 * 24) return `Hace ${Math.round(minutes / 60)} h`;
+  return `Hace ${Math.round(minutes / (60 * 24))} días`;
+}
+
+/** "Martes 17 · Noviembre 2026" */
+function formatDateLine(date: Date): string {
+  const weekday = date.toLocaleDateString('es-ES', { weekday: 'long' });
+  const month = date.toLocaleDateString('es-ES', { month: 'long' });
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  return `${cap(weekday)} ${date.getDate()} · ${cap(month)} ${date.getFullYear()}`;
 }
 
 const styles = StyleSheet.create({
   muted: {
-    fontFamily: 'DMSans_400Regular',
+    fontFamily: homeFonts.body,
     color: colors.inkMuted,
   },
-  gateWarn: {
-    backgroundColor: colors.warningSoft,
-    borderWidth: 1,
-    borderColor: '#E7C9A0',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 16,
-  },
-  gateWarnTitle: {
-    fontFamily: 'DMSans_700Bold',
-    color: colors.warning,
-    marginBottom: 4,
-  },
-  gateWarnBody: {
-    fontFamily: 'DMSans_400Regular',
-    color: colors.ink,
-    marginBottom: 10,
-    lineHeight: 20,
-  },
-  porteroCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  stack: {
     gap: 14,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E6E9E1',
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    marginBottom: 18,
   },
-  porteroIcon: {
-    width: 28,
-    height: 28,
-  },
-  porteroCopy: {
-    flex: 1,
-  },
-  porteroTitle: {
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 15,
-    color: '#1F2A24',
-  },
-  porteroBody: {
-    marginTop: 3,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 13,
-    color: '#7A8478',
-  },
-  porteroChevron: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 22,
-    color: '#8B9486',
-    marginTop: -2,
-  },
-  chevron: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 22,
-    color: '#A3AD97',
-  },
-  section: {
-    marginBottom: 8,
-  },
-  sectionHeading: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontFamily: 'Manrope_800ExtraBold',
-    fontSize: 18,
-    color: colors.ink,
-  },
-  textButton: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 12,
-    color: '#70825E',
-  },
-  catCard: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 18,
-    padding: 14,
-    marginBottom: 10,
-  },
-  catTop: {
+  tiles: {
     flexDirection: 'row',
     gap: 12,
   },
-  catIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+  wideWrap: {
+    width: '100%',
+    maxWidth: 1200,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 20,
   },
-  catDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  wideMain: {
+    flex: 2,
+    minWidth: 0,
   },
-  catMain: {
+  wideSide: {
     flex: 1,
-  },
-  catTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: 8,
-  },
-  catTitle: {
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 14,
-    color: colors.ink,
-  },
-  catPercent: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 12,
-    color: colors.inkMuted,
-  },
-  catAmount: {
-    marginTop: 2,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 12,
-    color: '#8B9382',
-  },
-  catBar: {
-    marginTop: 10,
-  },
-  catRemain: {
-    marginTop: 8,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 11,
-    color: '#8B9382',
-  },
-  rankQuick: {
-    marginTop: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 8,
-  },
-  rankQuickTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  rankQuickEyebrow: {
-    fontFamily: 'Manrope_800ExtraBold',
-    fontSize: 15,
-    color: colors.ink,
-  },
-  rankQuickLink: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 12,
-    color: '#70825E',
-  },
-  rankQuickBody: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    minWidth: 280,
     gap: 14,
-  },
-  rankQuickCopy: {
-    flex: 1,
-  },
-  rankQuickName: {
-    fontFamily: 'Manrope_800ExtraBold',
-    fontSize: 18,
-    color: colors.ink,
-  },
-  rankQuickHint: {
-    marginTop: 3,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 12,
-    color: colors.inkMuted,
-  },
-  rankQuickBar: {
-    marginTop: 10,
+    paddingTop: 72,
   },
 });

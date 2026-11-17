@@ -60,7 +60,7 @@ export function ProfileAvatar({ size = 42 }: Props) {
 
   if (photoUri) {
     return (
-      <View pointerEvents="none" style={{ width: size, height: size }}>
+      <View pointerEvents="none">
         <AvatarFace
           role={settings.companionRole}
           mood={mood}

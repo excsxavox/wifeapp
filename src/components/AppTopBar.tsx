@@ -91,18 +91,11 @@ const styles = StyleSheet.create({
     color: '#79866B',
   },
   avatarBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'transparent',
   },
-  avatarBtnLarge: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
+  avatarBtnLarge: {},
   avatarBtnPressed: {
     opacity: 0.7,
   },

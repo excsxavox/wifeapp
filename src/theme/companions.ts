@@ -77,6 +77,24 @@ export const MOOD_COLOR: Record<CompanionMood, string> = {
   furious: '#A33B32',
 };
 
+/** Ring and mood-pill color around the avatar circle (white text passes 4.5:1). */
+export const MOOD_INK: Record<CompanionMood, string> = {
+  happy: '#244D3B',
+  uneasy: '#7A5F1E',
+  annoyed: '#9A5A2E',
+  angry: '#A3473A',
+  furious: '#8E2F27',
+};
+
+/** Fill of the circle behind the avatar. */
+export const MOOD_DISC: Record<CompanionMood, string> = {
+  happy: '#FFF3E8',
+  uneasy: '#FFF6DA',
+  annoyed: '#FDE7D6',
+  angry: '#FBE0DA',
+  furious: '#F8D3CE',
+};
+
 /** A photo cannot change face, so the mood rides on an emoji. */
 export const MOOD_EMOJI: Record<CompanionMood, string> = {
   happy: '😊',

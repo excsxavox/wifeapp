@@ -2,14 +2,14 @@ import { SymbolView } from 'expo-symbols';
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 
-import { colors } from '@/src/theme/colors';
+import { home } from '@/src/theme/home';
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: '#9BA18F',
+        tabBarActiveTintColor: home.ink,
+        tabBarInactiveTintColor: home.muted,
         tabBarStyle: {
           backgroundColor: '#FFFFFFED',
           borderTopColor: '#E7EBDF',
@@ -62,15 +62,15 @@ export default function TabLayout() {
               style={{
                 width: 44,
                 height: 44,
-                borderRadius: 14,
-                backgroundColor: colors.primary,
+                borderRadius: 16,
+                backgroundColor: home.orange,
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginTop: -10,
               }}>
               <SymbolView
                 name={{ ios: 'plus', android: 'add', web: 'add' }}
-                tintColor="#fff"
+                tintColor={home.ink}
                 size={22}
               />
             </View>
