@@ -3,7 +3,8 @@ import { SymbolView } from 'expo-symbols';
 
 import { AvatarFace } from '@/src/components/AvatarFace';
 import type { CompanionRole } from '@/src/db/types';
-import { getCompanionAvatar, type CompanionMood } from '@/src/theme/companions';
+import { useBudget } from '@/src/context/BudgetContext';
+import { avatarVariant, getCompanionAvatar, type CompanionMood } from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
 
 const HERO = '#FFB27A';
@@ -31,6 +32,8 @@ export function HomeHeroCard({
   alertCount = 0,
   onPressAlerts,
 }: Props) {
+  const { settings } = useBudget();
+  const variant = avatarVariant(settings.avatarSource);
   const amount = formatHeroAmount(Math.max(available, 0));
 
   return (
@@ -68,16 +71,17 @@ export function HomeHeroCard({
             <Text style={styles.headline}>Tu dinero,{'\n'}a tu ritmo.</Text>
             <Text style={styles.month}>{monthLabel}</Text>
           </View>
-          {photoUri ? (
+          {photoUri || variant === 'adult' ? (
             <AvatarFace
               role={companionRole}
               mood={mood}
               photoUri={photoUri}
+              variant={variant}
               size={112}
             />
           ) : (
             <Image
-              source={getCompanionAvatar(companionRole, mood)}
+              source={getCompanionAvatar(companionRole, mood, 'pixel')}
               style={styles.companion}
               resizeMode="cover"
             />

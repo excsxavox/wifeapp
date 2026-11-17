@@ -38,6 +38,7 @@ import {
 import { setEmergencyPin } from '@/src/domain/pin';
 import { AvatarFace } from '@/src/components/AvatarFace';
 import { colors } from '@/src/theme/colors';
+import type { AvatarVariant } from '@/src/theme/companions';
 
 type Step = 'welcome' | 'companion' | 'permissions' | 'classify' | 'pin';
 
@@ -56,6 +57,7 @@ export default function OnboardingScreen() {
     useBudget();
   const [step, setStep] = useState<Step>('welcome');
   const [companionRole, setCompanionRole] = useState<CompanionRole>('esposa');
+  const [avatarStyle, setAvatarStyle] = useState<AvatarVariant>('pixel');
   const [installed, setInstalled] = useState<SelectableApp[]>([]);
   const [loadingApps, setLoadingApps] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -311,9 +313,33 @@ export default function OnboardingScreen() {
           <View>
             <Text style={styles.title}>¿Quién te acompaña?</Text>
             <Text style={styles.body}>
-              Este personaje aparece en la burbuja. Se pone más serio a medida
-              que gastas la categoría. En Ajustes puedes cambiarlo por una foto.
+              Elige el dibujo pixelado o la versión adulta. La cara se pone más
+              seria a medida que gastas. En Ajustes también puedes usar una foto.
             </Text>
+            <View style={styles.companionRow}>
+              {(
+                [
+                  { style: 'pixel' as const, label: 'Pixelado' },
+                  { style: 'adult' as const, label: 'Adulto' },
+                ] as const
+              ).map((option) => (
+                <Pressable
+                  key={option.style}
+                  onPress={() => setAvatarStyle(option.style)}
+                  style={[
+                    styles.companionCard,
+                    avatarStyle === option.style && styles.companionCardActive,
+                  ]}>
+                  <AvatarFace
+                    role={companionRole}
+                    mood="happy"
+                    variant={option.style}
+                    size={72}
+                  />
+                  <Text style={styles.companionLabel}>{option.label}</Text>
+                </Pressable>
+              ))}
+            </View>
             <View style={styles.companionRow}>
               {(
                 [
@@ -328,7 +354,12 @@ export default function OnboardingScreen() {
                     styles.companionCard,
                     companionRole === option.role && styles.companionCardActive,
                   ]}>
-                  <AvatarFace role={option.role} mood="happy" size={96} />
+                  <AvatarFace
+                    role={option.role}
+                    mood="happy"
+                    variant={avatarStyle}
+                    size={96}
+                  />
                   <Text style={styles.companionLabel}>{option.label}</Text>
                 </Pressable>
               ))}
@@ -337,6 +368,7 @@ export default function OnboardingScreen() {
               label="Continuar"
               onPress={async () => {
                 await setSetting('companionRole', companionRole);
+                await setSetting('avatarSource', avatarStyle);
                 await setSetting(
                   'userRole',
                   companionRole === 'esposa' ? 'esposo' : 'esposa'

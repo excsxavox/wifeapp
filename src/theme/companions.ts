@@ -3,6 +3,7 @@ import type { ImageSourcePropType } from 'react-native';
 import type { CompanionRole } from '@/src/db/types';
 
 export type CompanionMood = 'happy' | 'uneasy' | 'annoyed' | 'angry' | 'furious';
+export type AvatarVariant = 'pixel' | 'adult';
 
 export const COMPANION_MOODS: CompanionMood[] = [
   'happy',
@@ -12,7 +13,7 @@ export const COMPANION_MOODS: CompanionMood[] = [
   'furious',
 ];
 
-const AVATARS: Record<CompanionRole, Record<CompanionMood, ImageSourcePropType>> = {
+const PIXEL: Record<CompanionRole, Record<CompanionMood, ImageSourcePropType>> = {
   esposa: {
     happy: require('../../assets/avatars/girl_purple/emotions/happy.png'),
     uneasy: require('../../assets/avatars/girl_purple/emotions/uneasy.png'),
@@ -27,6 +28,28 @@ const AVATARS: Record<CompanionRole, Record<CompanionMood, ImageSourcePropType>>
     angry: require('../../assets/avatars/boy_navy/emotions/angry.png'),
     furious: require('../../assets/avatars/boy_navy/emotions/furious.png'),
   },
+};
+
+const ADULT: Record<CompanionRole, Record<CompanionMood, ImageSourcePropType>> = {
+  esposa: {
+    happy: require('../../assets/avatars/girl_adult/emotions/happy.png'),
+    uneasy: require('../../assets/avatars/girl_adult/emotions/uneasy.png'),
+    annoyed: require('../../assets/avatars/girl_adult/emotions/annoyed.png'),
+    angry: require('../../assets/avatars/girl_adult/emotions/angry.png'),
+    furious: require('../../assets/avatars/girl_adult/emotions/furious.png'),
+  },
+  esposo: {
+    happy: require('../../assets/avatars/boy_adult/emotions/happy.png'),
+    uneasy: require('../../assets/avatars/boy_adult/emotions/uneasy.png'),
+    annoyed: require('../../assets/avatars/boy_adult/emotions/annoyed.png'),
+    angry: require('../../assets/avatars/boy_adult/emotions/angry.png'),
+    furious: require('../../assets/avatars/boy_adult/emotions/furious.png'),
+  },
+};
+
+const AVATARS: Record<AvatarVariant, Record<CompanionRole, Record<CompanionMood, ImageSourcePropType>>> = {
+  pixel: PIXEL,
+  adult: ADULT,
 };
 
 const LABELS: Record<CompanionRole, Record<CompanionMood, string>> = {
@@ -83,11 +106,16 @@ export function worstSpentRatio(
   return worst;
 }
 
+export function avatarVariant(source: string | undefined): AvatarVariant {
+  return source === 'adult' ? 'adult' : 'pixel';
+}
+
 export function getCompanionAvatar(
   role: CompanionRole,
-  mood: CompanionMood = 'happy'
+  mood: CompanionMood = 'happy',
+  variant: AvatarVariant = 'pixel'
 ): ImageSourcePropType {
-  return AVATARS[role][mood];
+  return AVATARS[variant][role][mood];
 }
 
 export function moodLabel(role: CompanionRole, mood: CompanionMood): string {

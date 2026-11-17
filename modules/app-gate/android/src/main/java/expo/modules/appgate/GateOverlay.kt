@@ -773,8 +773,8 @@ class GateOverlay(private val service: AccessibilityService) {
     val config = GateStore.getOverlayConfig(service)
     val role = config.role
     val photo = if (config.avatarSource == "photo") photoBitmap(config.avatarPhotoUri) else null
-    val open = photo ?: loadPixel(pixelRes(role, mood, blink = false))
-    val closed = if (photo == null) loadPixel(pixelRes(role, mood, blink = true)) else null
+    val open = photo ?: loadPixel(faceRes(role, mood, blink = false))
+    val closed = if (photo == null) loadPixel(faceRes(role, mood, blink = true)) else null
     val ringColor = moodColor(mood)
     val ring = FrameLayout(service).apply {
       background = oval(Color.WHITE, ringColor, dp(2))
@@ -814,9 +814,28 @@ class GateOverlay(private val service: AccessibilityService) {
     return ring
   }
 
-  private fun pixelRes(role: String, mood: String, blink: Boolean): Int {
+  private fun faceRes(role: String, mood: String, blink: Boolean): Int {
+    val adult = GateStore.getOverlayConfig(service).avatarSource == "adult"
     val wife = role != "esposo"
-    return if (wife) {
+    return if (adult) {
+      if (wife) {
+        when (mood) {
+          "uneasy" -> if (blink) R.drawable.companion_adult_esposa_uneasy_blink else R.drawable.companion_adult_esposa_uneasy
+          "annoyed" -> if (blink) R.drawable.companion_adult_esposa_annoyed_blink else R.drawable.companion_adult_esposa_annoyed
+          "angry" -> if (blink) R.drawable.companion_adult_esposa_angry_blink else R.drawable.companion_adult_esposa_angry
+          "furious" -> if (blink) R.drawable.companion_adult_esposa_furious_blink else R.drawable.companion_adult_esposa_furious
+          else -> if (blink) R.drawable.companion_adult_esposa_happy_blink else R.drawable.companion_adult_esposa_happy
+        }
+      } else {
+        when (mood) {
+          "uneasy" -> if (blink) R.drawable.companion_adult_esposo_uneasy_blink else R.drawable.companion_adult_esposo_uneasy
+          "annoyed" -> if (blink) R.drawable.companion_adult_esposo_annoyed_blink else R.drawable.companion_adult_esposo_annoyed
+          "angry" -> if (blink) R.drawable.companion_adult_esposo_angry_blink else R.drawable.companion_adult_esposo_angry
+          "furious" -> if (blink) R.drawable.companion_adult_esposo_furious_blink else R.drawable.companion_adult_esposo_furious
+          else -> if (blink) R.drawable.companion_adult_esposo_happy_blink else R.drawable.companion_adult_esposo_happy
+        }
+      }
+    } else if (wife) {
       when (mood) {
         "uneasy" -> if (blink) R.drawable.companion_pixel_esposa_uneasy_blink else R.drawable.companion_pixel_esposa_uneasy
         "annoyed" -> if (blink) R.drawable.companion_pixel_esposa_annoyed_blink else R.drawable.companion_pixel_esposa_annoyed

@@ -174,9 +174,13 @@ export default function AjustesScreen() {
     await reloadSettings();
   };
 
-  const usePixelAvatar = async () => {
-    await setSetting('avatarSource', 'pixel');
+  const saveAvatarSource = async (source: 'pixel' | 'adult') => {
+    await setSetting('avatarSource', source);
     await reloadSettings();
+  };
+
+  const usePixelAvatar = async () => {
+    await saveAvatarSource('pixel');
   };
 
   const useSavedPhoto = async () => {
@@ -210,10 +214,11 @@ export default function AjustesScreen() {
         <Text style={styles.cardTitle}>Avatar</Text>
         <Text style={styles.cardBody}>
           La burbuja usa este rostro. Chica o chico cambia el dibujo y cómo te
-          habla. Con el avatar pixelado, la cara sigue lo gastado en la
-          categoría: tranquilo hasta 45%, atento hasta 70%, molesto hasta 85%,
-          enojado hasta 100% y furioso si te pasas. Si pones una foto, esa misma
-          imagen sale en toda la app y el emoji marca el enojo.
+          habla. Puedes elegir el dibujo pixelado, la versión adulta o una
+          foto. El dibujo cambia de cara según lo gastado: tranquilo hasta 45%,
+          atento hasta 70%, molesto hasta 85%, enojado hasta 100% y furioso si
+          te pasas. Si pones una foto, esa misma imagen sale en toda la app y
+          el emoji marca el enojo.
         </Text>
         <View style={styles.preview}>
           <AvatarFace
@@ -246,6 +251,31 @@ export default function AjustesScreen() {
                 {moodLabel(settings.companionRole, item)}
               </Text>
             </View>
+          ))}
+        </View>
+        <View style={styles.companionRow}>
+          {(
+            [
+              { source: 'pixel' as const, label: 'Pixelado' },
+              { source: 'adult' as const, label: 'Adulto' },
+            ] as const
+          ).map((option) => (
+            <Pressable
+              key={option.source}
+              onPress={() => saveAvatarSource(option.source)}
+              style={[
+                styles.companionCard,
+                settings.avatarSource === option.source &&
+                  styles.companionCardActive,
+              ]}>
+              <AvatarFace
+                role={settings.companionRole}
+                mood="happy"
+                variant={option.source}
+                size={72}
+              />
+              <Text style={styles.companionLabel}>{option.label}</Text>
+            </Pressable>
           ))}
         </View>
         <View style={styles.companionRow}>

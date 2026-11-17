@@ -66,8 +66,8 @@ export default function PerfilScreen() {
         <Text style={styles.cardTitle}>Compañero / compañera</Text>
         <Text style={styles.cardBody}>
           {photoUri
-            ? 'La foto se usa en el inicio, el portero y el coach. Chica o chico solo cambia el dibujo si vuelves al avatar pixelado.'
-            : 'Este dibujo sale en el portero y el coach.'}
+            ? 'La foto se usa en el inicio, el portero y el coach. Chica o chico solo cambia el dibujo si vuelves al avatar pixelado o adulto.'
+            : 'Este dibujo sale en el portero y el coach. En Ajustes eliges la versión pixelada o la adulta.'}
         </Text>
         <View style={styles.row}>
           {(

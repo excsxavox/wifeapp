@@ -156,7 +156,10 @@ export async function getSettings(): Promise<AppSettings> {
     authEmail: map.authEmail ?? '',
     userRole: map.userRole === 'esposa' ? 'esposa' : 'esposo',
     companionRole: map.companionRole === 'esposo' ? 'esposo' : 'esposa',
-    avatarSource: map.avatarSource === 'photo' ? 'photo' : 'pixel',
+    avatarSource:
+      map.avatarSource === 'photo' || map.avatarSource === 'adult'
+        ? map.avatarSource
+        : 'pixel',
     avatarPhotoUri: map.avatarPhotoUri ?? '',
     kdaTier: map.kdaTier ?? 'Hierro',
     kdaProgressMonths: Number(map.kdaProgressMonths ?? 0),

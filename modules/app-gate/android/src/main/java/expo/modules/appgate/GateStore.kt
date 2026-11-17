@@ -395,7 +395,11 @@ data class OverlayConfig(
           apps = apps,
           categories = categories,
           reminderMinutes = json.optInt("reminderMinutes", 20).coerceAtLeast(5),
-          avatarSource = if (json.optString("avatarSource") == "photo") "photo" else "pixel",
+          avatarSource = when (json.optString("avatarSource")) {
+            "photo" -> "photo"
+            "adult" -> "adult"
+            else -> "pixel"
+          },
           avatarPhotoUri = json.optString("avatarPhotoUri", "")
         )
       } catch (_: Exception) {

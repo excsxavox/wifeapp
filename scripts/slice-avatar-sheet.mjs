@@ -167,6 +167,8 @@ function splitWide(image, x0, x1, y0, y1) {
   ];
 }
 
+export { decodePng, crop, square, encodePng };
+
 export function sliceSheet(file) {
   const image = decodePng(file);
   const rowCounts = new Uint16Array(image.height);

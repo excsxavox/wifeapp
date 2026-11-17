@@ -1,10 +1,13 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import type { CompanionRole } from '@/src/db/types';
+import { useBudget } from '@/src/context/BudgetContext';
 import {
+  avatarVariant,
   getCompanionAvatar,
   MOOD_COLOR,
   MOOD_EMOJI,
+  type AvatarVariant,
   type CompanionMood,
 } from '@/src/theme/companions';
 
@@ -12,10 +15,19 @@ type Props = {
   role: CompanionRole;
   mood?: CompanionMood;
   photoUri?: string | null;
+  variant?: AvatarVariant;
   size?: number;
 };
 
-export function AvatarFace({ role, mood = 'happy', photoUri, size = 72 }: Props) {
+export function AvatarFace({
+  role,
+  mood = 'happy',
+  photoUri,
+  variant,
+  size = 72,
+}: Props) {
+  const { settings } = useBudget();
+  const style = variant ?? avatarVariant(settings.avatarSource);
   const ring = MOOD_COLOR[mood];
   const badge = Math.max(18, Math.round(size * 0.38));
   return (
@@ -31,7 +43,7 @@ export function AvatarFace({ role, mood = 'happy', photoUri, size = 72 }: Props)
           },
         ]}>
         <Image
-          source={photoUri ? { uri: photoUri } : getCompanionAvatar(role, mood)}
+          source={photoUri ? { uri: photoUri } : getCompanionAvatar(role, mood, style)}
           style={styles.image}
         />
       </View>
