@@ -13,7 +13,7 @@ import { AppTopBar } from '@/src/components/AppTopBar';
 import { colors } from '@/src/theme/colors';
 
 type Props = {
-  title: string;
+  title?: string;
   subtitle?: string;
   children: ReactNode;
   scroll?: boolean;
@@ -23,6 +23,7 @@ type Props = {
   right?: ReactNode;
   showBrand?: boolean;
   brandMinimal?: boolean;
+  showHeading?: boolean;
 };
 
 export function Screen({
@@ -36,6 +37,7 @@ export function Screen({
   right,
   showBrand = true,
   brandMinimal = false,
+  showHeading = true,
 }: Props) {
   const brand = showBrand ? (
     <View style={styles.brandWrap}>
@@ -43,15 +45,16 @@ export function Screen({
     </View>
   ) : null;
 
-  const heading = (
-    <View style={styles.headingRow}>
-      <View style={styles.headingText}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+  const heading =
+    showHeading && title ? (
+      <View style={styles.headingRow}>
+        <View style={styles.headingText}>
+          <Text style={styles.title}>{title}</Text>
+          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        </View>
+        {right}
       </View>
-      {right}
-    </View>
-  );
+    ) : null;
 
   if (!scroll) {
     return (

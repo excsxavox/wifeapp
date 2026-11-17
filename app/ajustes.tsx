@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
+  AppState,
   Platform,
   Pressable,
   StyleSheet,
@@ -10,10 +11,10 @@ import {
 import { Link, useRouter } from 'expo-router';
 
 import {
-  getGatePermissions,
   isAppGateAvailable,
   openAccessibilitySettings,
   openOverlaySettings,
+  waitForGatePermissions,
   type GatePermissions,
 } from '@/modules/app-gate';
 import { Field } from '@/src/components/Field';
@@ -41,7 +42,7 @@ export default function AjustesScreen() {
 
   const loadPerms = useCallback(async () => {
     if (!isAppGateAvailable()) return;
-    setPerms(await getGatePermissions());
+    setPerms(await waitForGatePermissions());
   }, []);
 
   useEffect(() => {
@@ -51,6 +52,10 @@ export default function AjustesScreen() {
 
   useEffect(() => {
     loadPerms();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') loadPerms();
+    });
+    return () => sub.remove();
   }, [loadPerms]);
 
   const savePin = async () => {
@@ -205,6 +210,10 @@ export default function AjustesScreen() {
             {'\n\n'}
             Cómo activar Accesibilidad:{'\n'}
             Ajustes del celular → Accesibilidad → WifeApp → Activar
+            {'\n\n'}
+            Si Android muestra “el servicio no funciona correctamente” o el
+            portero se apaga solo, vuelve a activar WifeApp en Accesibilidad.
+            Tras actualizar la app también hay que reactivarla.
           </Text>
           <PrimaryButton
             label="1. Activar Accesibilidad"
@@ -221,13 +230,13 @@ export default function AjustesScreen() {
             label="Comprobar permisos"
             variant="ghost"
             onPress={async () => {
-              await loadPerms();
-              const latest = await getGatePermissions();
+              const latest = await waitForGatePermissions();
+              setPerms(latest);
               Alert.alert(
                 latest.accessibilityEnabled ? 'Portero listo' : 'Falta Accesibilidad',
                 latest.accessibilityEnabled
                   ? 'Ya puedes abrir una app vigilada para probar el modal.'
-                  : 'Activa WifeApp en Accesibilidad y vuelve a comprobar.'
+                  : 'Activa WifeApp en Accesibilidad y vuelve a comprobar. Si el sistema la desactivó, actívala otra vez.'
               );
             }}
           />

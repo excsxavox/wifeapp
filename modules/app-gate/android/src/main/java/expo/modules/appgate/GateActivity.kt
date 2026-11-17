@@ -49,19 +49,23 @@ class GateActivity : Activity() {
     }
 
     if (!launched) {
-      val main = packageManager.getLaunchIntentForPackage(packageName)
-      if (main != null) {
-        main.action = Intent.ACTION_VIEW
-        main.data = deepLink
-        main.putExtra(EXTRA_TARGET_PACKAGE, target)
-        main.putExtra(EXTRA_MODE, mode)
-        main.addFlags(
-          Intent.FLAG_ACTIVITY_NEW_TASK or
-            Intent.FLAG_ACTIVITY_CLEAR_TOP or
-            Intent.FLAG_ACTIVITY_SINGLE_TOP or
-            Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-        )
-        startActivity(main)
+      try {
+        val main = packageManager.getLaunchIntentForPackage(packageName)
+        if (main != null) {
+          main.action = Intent.ACTION_VIEW
+          main.data = deepLink
+          main.putExtra(EXTRA_TARGET_PACKAGE, target)
+          main.putExtra(EXTRA_MODE, mode)
+          main.addFlags(
+            Intent.FLAG_ACTIVITY_NEW_TASK or
+              Intent.FLAG_ACTIVITY_CLEAR_TOP or
+              Intent.FLAG_ACTIVITY_SINGLE_TOP or
+              Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+          )
+          startActivity(main)
+        }
+      } catch (_: Exception) {
+        // No tumbar el proceso del trampolín.
       }
     }
 

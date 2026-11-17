@@ -46,7 +46,8 @@ object GateStore {
     } else {
       editor.putString(KEY_PENDING, packageName).putString(KEY_PENDING_MODE, mode)
     }
-    editor.commit()
+    // apply() evita bloquear el hilo del AccessibilityService (ANR → Android lo apaga).
+    editor.apply()
   }
 
   fun setPendingPackage(context: Context, packageName: String?) {
@@ -72,7 +73,7 @@ object GateStore {
     prefs(context).edit()
       .remove(KEY_PENDING)
       .remove(KEY_PENDING_MODE)
-      .commit()
+      .apply()
   }
 
   fun grantAccess(context: Context, packageName: String, graceSeconds: Int) {
@@ -130,7 +131,7 @@ object GateStore {
   fun markNeedsSettle(context: Context) {
     prefs(context).edit()
       .putBoolean(KEY_SESSION_NEEDS_SETTLE, true)
-      .commit()
+      .apply()
   }
 
   fun clearSession(context: Context) {
@@ -143,7 +144,7 @@ object GateStore {
       .remove(KEY_SESSION_NEEDS_SETTLE)
       .remove(KEY_GRACE_PACKAGE)
       .remove(KEY_GRACE_UNTIL)
-      .commit()
+      .apply()
   }
 
   fun setLastDetected(context: Context, packageName: String) {
