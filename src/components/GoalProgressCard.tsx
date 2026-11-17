@@ -27,7 +27,7 @@ export function GoalProgressCard({
           Crea una meta como «Viaje» y ve su progreso aquí. El KDA mira tus
           hábitos; la meta te recuerda el para qué.
         </Text>
-        <Text style={styles.cta}>Crear meta →</Text>
+        <Text style={styles.cta}>Registrar meta →</Text>
       </Pressable>
     );
   }

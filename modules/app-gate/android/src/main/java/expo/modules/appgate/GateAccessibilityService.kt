@@ -42,13 +42,13 @@ class GateAccessibilityService : AccessibilityService() {
     try {
       val info = serviceInfo
       if (info != null) {
-      info.eventTypes =
-        AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
-          AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
-      info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
-      info.notificationTimeout = 200
-      info.flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
-      serviceInfo = info
+        info.eventTypes =
+          AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED or
+            AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+        info.feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
+        info.notificationTimeout = 200
+        info.flags = AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS
+        serviceInfo = info
       }
     } catch (_: Exception) {
     }
@@ -200,6 +200,7 @@ class GateAccessibilityService : AccessibilityService() {
   private fun isTransient(packageName: String): Boolean {
     return packageName == "android" ||
       packageName == "com.android.systemui" ||
+      packageName == "com.google.android.systemui" ||
       packageName == "com.android.permissioncontroller" ||
       packageName == "com.google.android.permissioncontroller" ||
       packageName == "com.android.packageinstaller" ||
@@ -207,7 +208,8 @@ class GateAccessibilityService : AccessibilityService() {
       packageName.startsWith("com.google.android.inputmethod") ||
       packageName.startsWith("com.samsung.android.honeyboard") ||
       packageName.startsWith("com.samsung.android.app.telephonyui") ||
-      packageName.startsWith("com.miui.securitycenter")
+      packageName.startsWith("com.miui.securitycenter") ||
+      packageName.startsWith("com.android.systemui")
   }
 
   override fun onInterrupt() {}

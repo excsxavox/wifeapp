@@ -9,11 +9,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BrandLockup } from '@/src/components/BrandMark';
+import { AppTopBar } from '@/src/components/AppTopBar';
 import { colors } from '@/src/theme/colors';
 
 type Props = {
-  title: string;
+  title?: string;
   subtitle?: string;
   children: ReactNode;
   scroll?: boolean;
@@ -22,6 +22,8 @@ type Props = {
   style?: ViewStyle;
   right?: ReactNode;
   showBrand?: boolean;
+  brandMinimal?: boolean;
+  showHeading?: boolean;
 };
 
 export function Screen({
@@ -34,15 +36,17 @@ export function Screen({
   style,
   right,
   showBrand = true,
+  brandMinimal = false,
+  showHeading = true,
 }: Props) {
-  const header = (
-    <View style={styles.header}>
-      {showBrand ? (
-        <View style={styles.brandRow}>
-          <BrandLockup />
-          <Text style={styles.caption}>Tu dinero, con intención.</Text>
-        </View>
-      ) : null}
+  const brand = showBrand ? (
+    <View style={styles.brandWrap}>
+      <AppTopBar minimal={brandMinimal} showCaption={!brandMinimal} />
+    </View>
+  ) : null;
+
+  const heading =
+    showHeading && title ? (
       <View style={styles.headingRow}>
         <View style={styles.headingText}>
           <Text style={styles.title}>{title}</Text>
@@ -50,14 +54,14 @@ export function Screen({
         </View>
         {right}
       </View>
-    </View>
-  );
+    ) : null;
 
   if (!scroll) {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <View style={[styles.body, style]}>
-          {header}
+          {brand}
+          {heading}
           {children}
         </View>
       </SafeAreaView>
@@ -66,14 +70,16 @@ export function Screen({
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
+      {brand}
       <ScrollView
         contentContainerStyle={[styles.body, style]}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           onRefresh ? (
             <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} />
           ) : undefined
         }>
-        {header}
+        {heading}
         {children}
       </ScrollView>
     </SafeAreaView>
@@ -85,29 +91,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
+  brandWrap: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    zIndex: 10,
+  },
   body: {
     paddingHorizontal: 20,
     paddingBottom: 110,
-  },
-  header: {
-    marginTop: 4,
-    marginBottom: 22,
-  },
-  brandRow: {
-    marginBottom: 18,
-  },
-  caption: {
-    marginTop: 6,
-    marginLeft: 46,
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 10,
-    color: colors.inkMuted,
   },
   headingRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 12,
+    marginTop: 4,
+    marginBottom: 22,
   },
   headingText: {
     flex: 1,

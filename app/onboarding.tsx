@@ -15,8 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
-  getGatePermissions,
   isAppGateAvailable,
+  waitForGatePermissions,
   listInstalledApps,
   openAccessibilitySettings,
   openOverlaySettings,
@@ -82,7 +82,7 @@ export default function OnboardingScreen() {
 
   const refreshPerms = useCallback(async () => {
     if (!needsAndroidGate) return;
-    setPerms(await getGatePermissions());
+    setPerms(await waitForGatePermissions());
   }, [needsAndroidGate]);
 
   useEffect(() => {
@@ -185,7 +185,7 @@ export default function OnboardingScreen() {
   const goToClassify = async () => {
     await refreshPerms();
     if (needsAndroidGate && !perms.accessibilityEnabled) {
-      const latest = await getGatePermissions();
+      const latest = await waitForGatePermissions();
       setPerms(latest);
       if (!latest.accessibilityEnabled) {
         Alert.alert(
@@ -232,7 +232,7 @@ export default function OnboardingScreen() {
 
   const finish = async (withPin: boolean) => {
     if (needsAndroidGate) {
-      const latest = await getGatePermissions();
+      const latest = await waitForGatePermissions();
       setPerms(latest);
       if (!latest.accessibilityEnabled) {
         Alert.alert(
@@ -337,6 +337,10 @@ export default function OnboardingScreen() {
               label="Continuar"
               onPress={async () => {
                 await setSetting('companionRole', companionRole);
+                await setSetting(
+                  'userRole',
+                  companionRole === 'esposa' ? 'esposo' : 'esposa'
+                );
                 await reloadSettings();
                 setStep(needsAndroidGate ? 'permissions' : 'classify');
               }}
@@ -384,7 +388,7 @@ export default function OnboardingScreen() {
                     label="Ya lo activé · comprobar"
                     variant="secondary"
                     onPress={async () => {
-                      const latest = await getGatePermissions();
+                      const latest = await waitForGatePermissions();
                       setPerms(latest);
                       Alert.alert(
                         latest.accessibilityEnabled

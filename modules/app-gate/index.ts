@@ -52,6 +52,32 @@ export async function getGatePermissions(): Promise<GatePermissions> {
   return AppGateModule.getPermissions();
 }
 
+/**
+ * Tras volver de Ajustes, AccessibilityManager a veces tarda en reflejar el toggle.
+ * Reintenta unos segundos para evitar el falso “portero apagado”.
+ */
+export async function waitForGatePermissions(options?: {
+  attempts?: number;
+  delayMs?: number;
+  requireAccessibility?: boolean;
+}): Promise<GatePermissions> {
+  const attempts = options?.attempts ?? 5;
+  const delayMs = options?.delayMs ?? 400;
+  const requireAccessibility = options?.requireAccessibility ?? true;
+
+  let latest = await getGatePermissions();
+  if (!requireAccessibility || latest.accessibilityEnabled) {
+    return latest;
+  }
+
+  for (let i = 1; i < attempts; i += 1) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    latest = await getGatePermissions();
+    if (latest.accessibilityEnabled) return latest;
+  }
+  return latest;
+}
+
 export async function openAccessibilitySettings(): Promise<void> {
   if (Platform.OS !== 'android' || !AppGateModule) return;
   await AppGateModule.openAccessibilitySettings();

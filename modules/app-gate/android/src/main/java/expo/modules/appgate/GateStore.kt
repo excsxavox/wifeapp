@@ -63,7 +63,12 @@ object GateStore {
     } else {
       editor.putString(KEY_PENDING, packageName).putString(KEY_PENDING_MODE, mode)
     }
+    // apply() evita bloquear el hilo del AccessibilityService (ANR → Android lo apaga).
     editor.apply()
+  }
+
+  fun setPendingPackage(context: Context, packageName: String?) {
+    setPendingGate(context, packageName, MODE_INTENT)
   }
 
   fun getPendingPackage(context: Context): String? {
@@ -145,6 +150,12 @@ object GateStore {
       "needsSettle" to prefs.getBoolean(KEY_SESSION_NEEDS_SETTLE, false),
       "startedAt" to prefs.getLong(KEY_SESSION_STARTED_AT, 0L)
     )
+  }
+
+  fun markNeedsSettle(context: Context) {
+    prefs(context).edit()
+      .putBoolean(KEY_SESSION_NEEDS_SETTLE, true)
+      .apply()
   }
 
   fun clearSession(context: Context) {

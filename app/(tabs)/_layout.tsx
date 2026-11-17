@@ -37,15 +37,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="metricas"
+        name="constancia"
         options={{
-          title: 'Métricas',
+          title: 'Constancia',
           tabBarIcon: ({ color }) => (
             <SymbolView
               name={{
-                ios: 'chart.bar.fill',
-                android: 'bar_chart',
-                web: 'bar_chart',
+                ios: 'flame.fill',
+                android: 'local_fire_department',
+                web: 'local_fire_department',
               }}
               tintColor={color}
               size={20}
@@ -112,9 +112,8 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="metricas" options={{ href: null }} />
       <Tabs.Screen name="historial" options={{ href: null }} />
-      <Tabs.Screen name="ajustes" options={{ href: null }} />
-      <Tabs.Screen name="metas" options={{ href: null }} />
     </Tabs>
   );
 }

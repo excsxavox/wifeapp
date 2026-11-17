@@ -1,30 +1,33 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
+  AppState,
   Platform,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
 import {
-  getGatePermissions,
   isAppGateAvailable,
   openAccessibilitySettings,
   openOverlaySettings,
+  waitForGatePermissions,
   type GatePermissions,
 } from '@/modules/app-gate';
 import { AvatarFace } from '@/src/components/AvatarFace';
 import { Field } from '@/src/components/Field';
 import { PrimaryButton } from '@/src/components/PrimaryButton';
+import { ProfileAvatar } from '@/src/components/ProfileAvatar';
 import { Screen } from '@/src/components/Screen';
 import { useBudget } from '@/src/context/BudgetContext';
 import { setSetting } from '@/src/db/queries';
 import type { CompanionRole } from '@/src/db/types';
 import { saveCompanionPhoto } from '@/src/domain/avatar';
+import { clearAuthSession } from '@/src/domain/auth';
 import { ensureNotificationPermissions } from '@/src/domain/notifications';
 import { setEmergencyPin } from '@/src/domain/pin';
 import {
@@ -50,7 +53,7 @@ export default function AjustesScreen() {
 
   const loadPerms = useCallback(async () => {
     if (!isAppGateAvailable()) return;
-    setPerms(await getGatePermissions());
+    setPerms(await waitForGatePermissions());
   }, []);
 
   useEffect(() => {
@@ -60,6 +63,10 @@ export default function AjustesScreen() {
 
   useEffect(() => {
     loadPerms();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') loadPerms();
+    });
+    return () => sub.remove();
   }, [loadPerms]);
 
   const savePin = async () => {
@@ -104,9 +111,23 @@ export default function AjustesScreen() {
     );
   };
 
-  const saveCompanion = async (role: CompanionRole) => {
-    await setSetting('companionRole', role);
-    await reloadSettings();
+  const signOut = () => {
+    Alert.alert(
+      'Cerrar sesión',
+      'Volverás a la pantalla de inicio. Tus datos locales se conservan.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Cerrar sesión',
+          style: 'destructive',
+          onPress: async () => {
+            await clearAuthSession();
+            await reloadSettings();
+            router.replace('/login');
+          },
+        },
+      ]
+    );
   };
 
   const pickAvatar = async (fromCamera: boolean) => {
@@ -148,6 +169,11 @@ export default function AjustesScreen() {
     }
   };
 
+  const saveCompanion = async (role: CompanionRole) => {
+    await setSetting('companionRole', role);
+    await reloadSettings();
+  };
+
   const usePixelAvatar = async () => {
     await setSetting('avatarSource', 'pixel');
     await reloadSettings();
@@ -164,7 +190,22 @@ export default function AjustesScreen() {
   const percent = Math.round(ratio * 100);
 
   return (
-    <Screen title="Ajustes" subtitle="Código de emergencia, permisos y período.">
+    <Screen
+      title="Ajustes"
+      subtitle="Código de emergencia, permisos y período."
+      showBrand={false}>
+      <Link href="/perfil" asChild>
+        <Pressable style={styles.profileCard}>
+          <ProfileAvatar size={42} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.cardTitle}>Mi perfil</Text>
+            <Text style={styles.cardBodyCompact}>
+              Avatar animado y compañero/a del portero.
+            </Text>
+          </View>
+          <Text style={styles.chevron}>›</Text>
+        </Pressable>
+      </Link>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Avatar</Text>
         <Text style={styles.cardBody}>
@@ -327,6 +368,10 @@ export default function AjustesScreen() {
             {'\n\n'}
             Cómo activar Accesibilidad:{'\n'}
             Ajustes del celular → Accesibilidad → WifeApp → Activar
+            {'\n\n'}
+            Si Android muestra “el servicio no funciona correctamente” o el
+            portero se apaga solo, vuelve a activar WifeApp en Accesibilidad.
+            Tras actualizar la app también hay que reactivarla.
           </Text>
           <PrimaryButton
             label="1. Activar Accesibilidad"
@@ -343,13 +388,13 @@ export default function AjustesScreen() {
             label="Comprobar permisos"
             variant="ghost"
             onPress={async () => {
-              await loadPerms();
-              const latest = await getGatePermissions();
+              const latest = await waitForGatePermissions();
+              setPerms(latest);
               Alert.alert(
                 latest.accessibilityEnabled ? 'Portero listo' : 'Falta Accesibilidad',
                 latest.accessibilityEnabled
                   ? 'Ya puedes abrir una app vigilada para probar el modal.'
-                  : 'Activa WifeApp en Accesibilidad y vuelve a comprobar.'
+                  : 'Activa WifeApp en Accesibilidad y vuelve a comprobar. Si el sistema la desactivó, actívala otra vez.'
               );
             }}
           />
@@ -371,24 +416,36 @@ export default function AjustesScreen() {
         style={{ marginBottom: 8 }}
       />
       <PrimaryButton
-        label="Repetir configuración inicial"
-        variant="ghost"
-        onPress={() => router.push('/onboarding')}
+        label="Cerrar sesión"
+        variant="danger"
+        onPress={signOut}
       />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 14,
+  },
   card: {
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 14,
   },
   cardTitle: {
-    fontFamily: 'DMSans_700Bold',
+    fontFamily: 'Manrope_800ExtraBold',
     fontSize: 16,
     color: colors.ink,
     marginBottom: 6,
@@ -400,9 +457,17 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 12,
   },
+  cardBodyCompact: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 12,
+    color: colors.inkMuted,
+    lineHeight: 17,
+    marginBottom: 0,
+  },
   companionRow: {
     flexDirection: 'row',
     gap: 10,
+    marginBottom: 12,
   },
   companionCard: {
     flex: 1,
@@ -421,6 +486,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontFamily: 'DMSans_700Bold',
     color: colors.ink,
+  },
+  chevron: {
+    fontSize: 22,
+    color: '#A3AD97',
   },
   preview: {
     flexDirection: 'row',

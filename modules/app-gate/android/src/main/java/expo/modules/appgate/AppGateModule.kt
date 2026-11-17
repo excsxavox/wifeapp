@@ -1,10 +1,13 @@
 package expo.modules.appgate
 
 import android.accessibilityservice.AccessibilityServiceInfo
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
+import android.text.TextUtils
+import android.util.Log
 import android.view.accessibility.AccessibilityManager
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -69,11 +72,15 @@ class AppGateModule : Module() {
 
     AsyncFunction("denyAndGoHome") {
       GateStore.clearPendingPackage(context)
-      val home = Intent(Intent.ACTION_MAIN).apply {
-        addCategory(Intent.CATEGORY_HOME)
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+      try {
+        val home = Intent(Intent.ACTION_MAIN).apply {
+          addCategory(Intent.CATEGORY_HOME)
+          flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(home)
+      } catch (error: Exception) {
+        Log.e("WifeAppGate", "Failed to go home", error)
       }
-      context.startActivity(home)
     }
 
     AsyncFunction("getPendingPackage") {
@@ -142,22 +149,59 @@ class AppGateModule : Module() {
   }
 
   private fun launchPackage(packageName: String) {
-    val launch = context.packageManager.getLaunchIntentForPackage(packageName)
-    if (launch != null) {
+    try {
+      val launch = context.packageManager.getLaunchIntentForPackage(packageName) ?: return
       launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       context.startActivity(launch)
+    } catch (error: Exception) {
+      Log.e("WifeAppGate", "Failed to launch $packageName", error)
     }
   }
 
   private fun isAccessibilityEnabled(): Boolean {
-    val am = context.getSystemService(AccessibilityManager::class.java) ?: return false
-    val enabledServices =
-      am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-    val expectedPackage = context.packageName
-    val expectedClass = GateAccessibilityService::class.java.name
-    return enabledServices.any { info ->
-      val serviceInfo = info.resolveInfo?.serviceInfo ?: return@any false
-      serviceInfo.packageName == expectedPackage && serviceInfo.name == expectedClass
+    val expected = ComponentName(context, GateAccessibilityService::class.java)
+
+    val am = context.getSystemService(AccessibilityManager::class.java)
+    if (am != null) {
+      val enabledServices =
+        am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+      val fromManager = enabledServices.any { info ->
+        val serviceInfo = info.resolveInfo?.serviceInfo ?: return@any false
+        serviceInfo.packageName == expected.packageName &&
+          (serviceInfo.name == expected.className ||
+            serviceInfo.name == expected.flattenToShortString() ||
+            serviceInfo.name == expected.flattenToString())
+      }
+      if (fromManager) return true
     }
+
+    // Fallback: lista Secure a veces refleja el toggle antes que AccessibilityManager.
+    return isEnabledInSecureSettings(expected)
+  }
+
+  private fun isEnabledInSecureSettings(expected: ComponentName): Boolean {
+    val enabled = try {
+      Settings.Secure.getString(
+        context.contentResolver,
+        Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+      )
+    } catch (_: Exception) {
+      null
+    }
+    if (enabled.isNullOrBlank()) return false
+
+    val splitter = TextUtils.SimpleStringSplitter(':')
+    splitter.setString(enabled)
+    while (splitter.hasNext()) {
+      val component = ComponentName.unflattenFromString(splitter.next()) ?: continue
+      if (component == expected) return true
+      if (
+        component.packageName == expected.packageName &&
+        component.className == expected.className
+      ) {
+        return true
+      }
+    }
+    return false
   }
 }

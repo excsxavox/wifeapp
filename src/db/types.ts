@@ -35,15 +35,29 @@ export type WatchedApp = {
 export type CompanionRole = 'esposa' | 'esposo';
 
 export type AvatarSource = 'pixel' | 'photo';
+export type AuthMode = 'none' | 'guest' | 'account';
 
 export type AppSettings = {
   monthlyResetDay: number;
   currency: string;
   emergencyPinSet: boolean;
   setupComplete: boolean;
+  /** Sesión de acceso: none = pantalla login. */
+  authMode: AuthMode;
+  /** Correo de la cuenta local, si aplica. */
+  authEmail: string;
+  /** Quién usa la app (avatar de cabecera / perfil). */
+  userRole: CompanionRole;
+  /** Compañero/a del portero y coach. */
   companionRole: CompanionRole;
   avatarSource: AvatarSource;
   avatarPhotoUri: string;
+  /** Rango KDA persistido (constancia mensual). */
+  kdaTier: string;
+  /** Meses buenos hacia el siguiente rango. */
+  kdaProgressMonths: number;
+  /** ISO del inicio/fin del último periodo liquidado. */
+  kdaLastSettledPeriod: string | null;
 };
 
 export type CategoryBudgetStatus = Category & {
@@ -59,6 +73,8 @@ export type SavingsGoal = {
   targetAmount: number;
   savedAmount: number;
   color: string;
+  icon: string;
+  targetDate: string | null;
   createdAt: string;
   updatedAt: string;
 };

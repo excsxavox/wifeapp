@@ -99,7 +99,8 @@ export default function AppsVigiladasScreen() {
   return (
     <Screen
       title="Apps vigiladas"
-      subtitle="Se detectan las apps instaladas. Tú eliges con cuáles interactuar.">
+      subtitle="Se detectan las apps instaladas. Tú eliges con cuáles interactuar."
+      brandMinimal>
       <PrimaryButton
         label="Volver a configurar desde cero"
         variant="secondary"
@@ -231,9 +232,10 @@ export default function AppsVigiladasScreen() {
 
 const styles = StyleSheet.create({
   detectCard: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: '#E7F0D8',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: '#D7E3C8',
+    borderRadius: 18,
     padding: 14,
     marginBottom: 14,
   },
@@ -265,6 +267,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+    borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontFamily: 'DMSans_400Regular',
@@ -283,6 +286,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 16,
     padding: 12,
     marginBottom: 8,
   },
@@ -290,6 +294,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 16,
     padding: 12,
     marginBottom: 8,
   },
@@ -316,10 +321,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   kindChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderWidth: 1,
     borderColor: colors.border,
+    borderRadius: 16,
+    backgroundColor: colors.bgElevated,
   },
   kindChipActive: {
     backgroundColor: colors.primary,

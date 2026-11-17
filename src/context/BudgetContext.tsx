@@ -19,9 +19,12 @@ import type {
   WatchedApp,
 } from '@/src/db/types';
 import { buildCategoryStatus, wouldExceedBudget } from '@/src/domain/budget';
+import type { RankState } from '@/src/domain/kda';
 import { formatPeriodLabel, getPeriodEnd, getPeriodStart } from '@/src/domain/month';
 import { notifyBudgetThresholds } from '@/src/domain/notifications';
 import { isPinSet } from '@/src/domain/pin';
+import { AppState } from 'react-native';
+
 import {
   getPendingExpenses,
   removePendingExpense,
@@ -29,7 +32,10 @@ import {
   syncWatchedAppsToNative,
   type PendingExpense,
 } from '@/modules/app-gate';
-import { AppState } from 'react-native';
+import {
+  rankStateFromSettings,
+  settleClosedRankPeriods,
+} from '@/src/domain/rankSettlement';
 
 type BudgetContextValue = {
   ready: boolean;
@@ -44,11 +50,18 @@ type BudgetContextValue = {
   dismissPending: (id: string) => Promise<void>;
   primaryGoal: SavingsGoal | null;
   settings: AppSettings;
+  rank: RankState;
   periodLabel: string;
   totalBudget: number;
   totalSpent: number;
   refresh: () => Promise<void>;
   updateLimit: (id: number, monthlyLimit: number) => Promise<void>;
+  addCategory: (input: {
+    name: string;
+    monthlyLimit: number;
+    color?: string;
+  }) => Promise<void>;
+  removeCategory: (id: number) => Promise<void>;
   addExpense: (input: {
     categoryId: number;
     amount: number;
@@ -80,6 +93,8 @@ type BudgetContextValue = {
     targetAmount: number;
     savedAmount?: number;
     color?: string;
+    icon?: string;
+    targetDate?: string | null;
   }) => Promise<SavingsGoal>;
   contributeToGoal: (id: number, amount: number) => Promise<void>;
   removeGoal: (id: number) => Promise<void>;
@@ -103,9 +118,20 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     currency: 'USD',
     emergencyPinSet: false,
     setupComplete: false,
+    authMode: 'none',
+    authEmail: '',
+    userRole: 'esposo',
     companionRole: 'esposa',
     avatarSource: 'pixel',
     avatarPhotoUri: '',
+    kdaTier: 'Hierro',
+    kdaProgressMonths: 0,
+    kdaLastSettledPeriod: null,
+  });
+  const [rank, setRank] = useState<RankState>({
+    tier: 'Hierro',
+    progressMonths: 0,
+    lastSettledPeriod: null,
   });
 
   const [initError, setInitError] = useState<string | null>(null);
@@ -126,8 +152,20 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       } catch (pinError) {
         console.warn('PIN storage unavailable', pinError);
       }
-      const nextSettings = { ...sett, emergencyPinSet: pinConfigured };
+      let nextSettings = { ...sett, emergencyPinSet: pinConfigured };
+      let nextRank = rankStateFromSettings(nextSettings);
       let pending: PendingExpense[] = [];
+      try {
+        nextRank = await settleClosedRankPeriods(nextSettings, cats);
+        nextSettings = {
+          ...nextSettings,
+          kdaTier: nextRank.tier,
+          kdaProgressMonths: nextRank.progressMonths,
+          kdaLastSettledPeriod: nextRank.lastSettledPeriod,
+        };
+      } catch (rankError) {
+        console.warn('Rank settlement skipped', rankError);
+      }
       try {
         pending = await importReportedExpenses(
           cats,
@@ -142,6 +180,7 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
 
       setCategories(cats);
       setSettings(nextSettings);
+      setRank(nextRank);
       setSpentMap(spent);
       setExpenses(list);
       setWatchedApps(watched);
@@ -160,7 +199,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
         error instanceof Error ? error.message : 'No se pudo iniciar la base de datos';
       console.error('Failed to init budget db', error);
       setInitError(message);
-      throw error;
+      setReady(false);
+      // Do not rethrow — keep UI usable with the error state.
     }
   }, []);
 
@@ -197,6 +237,22 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
   const updateLimit = useCallback(
     async (id: number, monthlyLimit: number) => {
       await queries.updateCategoryLimit(id, monthlyLimit);
+      await refresh();
+    },
+    [refresh]
+  );
+
+  const addCategory = useCallback(
+    async (input: { name: string; monthlyLimit: number; color?: string }) => {
+      await queries.addCategory(input);
+      await refresh();
+    },
+    [refresh]
+  );
+
+  const removeCategory = useCallback(
+    async (id: number) => {
+      await queries.deleteCategory(id);
       await refresh();
     },
     [refresh]
@@ -323,6 +379,8 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
       targetAmount: number;
       savedAmount?: number;
       color?: string;
+      icon?: string;
+      targetDate?: string | null;
     }) => {
       const goal = await queries.upsertSavingsGoal(input);
       await refresh();
@@ -396,11 +454,14 @@ export function BudgetProvider({ children }: { children: React.ReactNode }) {
     dismissPending,
     primaryGoal,
     settings,
+    rank,
     periodLabel,
     totalBudget,
     totalSpent,
     refresh,
     updateLimit,
+    addCategory,
+    removeCategory,
     addExpense,
     removeExpense,
     setWatchedEnabled,
