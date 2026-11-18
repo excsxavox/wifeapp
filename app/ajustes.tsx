@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import {
-  Alert,
-  AppState,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { AppState, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -28,7 +20,7 @@ import { setSetting } from '@/src/db/queries';
 import type { CompanionRole } from '@/src/db/types';
 import { saveCompanionPhoto } from '@/src/domain/avatar';
 import { clearAuthSession } from '@/src/domain/auth';
-import { ensureNotificationPermissions } from '@/src/domain/notifications';
+import { alertFailure, alertInfo, alertSuccess, alertWarning, confirmAction, showAlert, toastFailure, toastInfo, toastSuccess, toastWarning } from '@/src/domain/feedback';
 import { setEmergencyPin } from '@/src/domain/pin';
 import {
   COMPANION_MOODS,
@@ -71,7 +63,7 @@ export default function AjustesScreen() {
 
   const savePin = async () => {
     if (pin !== confirm) {
-      Alert.alert('No coinciden', 'Los códigos deben ser iguales.');
+      showAlert('No coinciden', 'Los códigos deben ser iguales.');
       return;
     }
     try {
@@ -79,54 +71,39 @@ export default function AjustesScreen() {
       setPin('');
       setConfirm('');
       await reloadSettings();
-      Alert.alert('Código guardado', 'Úsalo cuando una categoría esté agotada.');
+      showAlert('Código guardado', 'Úsalo cuando una categoría esté agotada.');
     } catch (error) {
-      Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'No se pudo guardar el código'
-      );
+      showAlert('Error', error instanceof Error ? error.message : 'No se pudo guardar el código');
     }
   };
 
   const saveGeneral = async () => {
     const day = Number(resetDay);
     if (!Number.isInteger(day) || day < 1 || day > 28) {
-      Alert.alert('Día inválido', 'Usa un día entre 1 y 28.');
+      showAlert('Día inválido', 'Usa un día entre 1 y 28.');
       return;
     }
     await setSetting('monthlyResetDay', String(day));
     await setSetting('currency', currency.trim().toUpperCase() || 'USD');
     await reloadSettings();
     await refresh();
-    Alert.alert('Guardado', 'Ajustes generales actualizados.');
+    showAlert('Guardado', 'Ajustes generales actualizados.');
   };
 
-  const enableNotifications = async () => {
-    const ok = await ensureNotificationPermissions();
-    Alert.alert(
-      ok ? 'Notificaciones activas' : 'Permiso denegado',
-      ok
-        ? 'Te avisaremos al 80% y al 100% de cada categoría.'
-        : 'Actívalas en Ajustes del sistema si cambias de opinión.'
-    );
+  const testInAppAlerts = () => {
+    toastSuccess('Avisos listos · te avisamos al 80% y al 100% del presupuesto.');
   };
 
   const signOut = () => {
-    Alert.alert(
+    confirmAction(
       'Cerrar sesión',
       'Volverás a la pantalla de inicio. Tus datos locales se conservan.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar sesión',
-          style: 'destructive',
-          onPress: async () => {
-            await clearAuthSession();
-            await reloadSettings();
-            router.replace('/login');
-          },
-        },
-      ]
+      'Cerrar sesión',
+      async () => {
+        await clearAuthSession();
+        await reloadSettings();
+        router.replace('/login');
+      }
     );
   };
 
@@ -135,12 +112,9 @@ export default function AjustesScreen() {
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert(
-        'Permiso necesario',
-        fromCamera
+      showAlert('Permiso necesario', fromCamera
           ? 'Sin la cámara no puedo tomar la foto del avatar.'
-          : 'Sin acceso a las fotos no puedo usar esa imagen.'
-      );
+          : 'Sin acceso a las fotos no puedo usar esa imagen.');
       return;
     }
     const result = fromCamera
@@ -162,10 +136,7 @@ export default function AjustesScreen() {
       await setSetting('avatarSource', 'photo');
       await reloadSettings();
     } catch (error) {
-      Alert.alert(
-        'No se pudo guardar la foto',
-        error instanceof Error ? error.message : 'Prueba con otra imagen.'
-      );
+      showAlert('No se pudo guardar la foto', error instanceof Error ? error.message : 'Prueba con otra imagen.');
     }
   };
 
@@ -174,7 +145,7 @@ export default function AjustesScreen() {
     await reloadSettings();
   };
 
-  const saveAvatarSource = async (source: 'pixel' | 'adult') => {
+  const saveAvatarSource = async (source: 'pixel' | 'adult' | 'disney') => {
     await setSetting('avatarSource', source);
     await reloadSettings();
   };
@@ -214,11 +185,11 @@ export default function AjustesScreen() {
         <Text style={styles.cardTitle}>Avatar</Text>
         <Text style={styles.cardBody}>
           La burbuja usa este rostro. Chica o chico cambia el dibujo y cómo te
-          habla. Puedes elegir el dibujo pixelado, la versión adulta o una
-          foto. El dibujo cambia de cara según lo gastado: tranquilo hasta 45%,
-          atento hasta 70%, molesto hasta 85%, enojado hasta 100% y furioso si
-          te pasas. Si pones una foto, esa misma imagen sale en toda la app y
-          el emoji marca el enojo.
+          habla. Puedes elegir el dibujo pixelado, la versión adulta, el estilo
+          Disney del login o una foto. El dibujo cambia de cara según lo
+          gastado: tranquilo hasta 45%, atento hasta 70%, molesto hasta 85%,
+          enojado hasta 100% y furioso si te pasas. Si pones una foto, esa
+          misma imagen sale en toda la app y el emoji marca el enojo.
         </Text>
         <View style={styles.preview}>
           <AvatarFace
@@ -258,6 +229,7 @@ export default function AjustesScreen() {
             [
               { source: 'pixel' as const, label: 'Pixelado' },
               { source: 'adult' as const, label: 'Adulto' },
+              { source: 'disney' as const, label: 'Disney' },
             ] as const
           ).map((option) => (
             <Pressable
@@ -272,7 +244,7 @@ export default function AjustesScreen() {
                 role={settings.companionRole}
                 mood="happy"
                 variant={option.source}
-                size={72}
+                size={64}
               />
               <Text style={styles.companionLabel}>{option.label}</Text>
             </Pressable>
@@ -377,13 +349,14 @@ export default function AjustesScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Avisos</Text>
         <Text style={styles.cardBody}>
-          En iPhone (y también en Android) te avisamos cuando una categoría llega
-          al 80% o se agota.
+          Los avisos son in-app (Notiflix): toast y alertas dentro de WifeApp,
+          sin notificaciones del celular. Te avisamos al 80% y al 100% del
+          presupuesto.
         </Text>
         <PrimaryButton
-          label="Activar notificaciones"
+          label="Probar aviso in-app"
           variant="secondary"
-          onPress={enableNotifications}
+          onPress={testInAppAlerts}
         />
       </View>
 
@@ -425,12 +398,16 @@ export default function AjustesScreen() {
             onPress={async () => {
               const latest = await waitForGatePermissions();
               setPerms(latest);
-              Alert.alert(
-                latest.accessibilityEnabled ? 'Portero listo' : 'Falta Accesibilidad',
-                latest.accessibilityEnabled
-                  ? 'Ya puedes abrir una app vigilada para probar el modal.'
-                  : 'Activa WifeApp en Accesibilidad y vuelve a comprobar. Si el sistema la desactivó, actívala otra vez.'
-              );
+              if (latest.accessibilityEnabled) {
+                toastSuccess(
+                  'Portero listo · ya puedes abrir una app vigilada.'
+                );
+              } else {
+                alertWarning(
+                  'Falta Accesibilidad',
+                  'Activa WifeApp en Accesibilidad y vuelve a comprobar. Si el sistema la desactivó, actívala otra vez.'
+                );
+              }
             }}
           />
         </View>

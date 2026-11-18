@@ -1,4 +1,4 @@
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 
 import { AvatarFace } from '@/src/components/AvatarFace';
@@ -9,6 +9,7 @@ import { useBudget } from '@/src/context/BudgetContext';
 import { setSetting } from '@/src/db/queries';
 import type { CompanionRole } from '@/src/db/types';
 import { clearAuthSession } from '@/src/domain/auth';
+import { alertFailure, alertInfo, alertSuccess, alertWarning, confirmAction, showAlert, toastFailure, toastInfo, toastSuccess, toastWarning } from '@/src/domain/feedback';
 import {
   companionPhotoUri,
   moodFromRatio,
@@ -29,21 +30,15 @@ export default function PerfilScreen() {
   };
 
   const signOut = () => {
-    Alert.alert(
+    confirmAction(
       'Cerrar sesión',
       'Volverás a la pantalla de inicio. Tus datos locales se conservan.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar sesión',
-          style: 'destructive',
-          onPress: async () => {
-            await clearAuthSession();
-            await reloadSettings();
-            router.replace('/login');
-          },
-        },
-      ]
+      'Cerrar sesión',
+      async () => {
+        await clearAuthSession();
+        await reloadSettings();
+        router.replace('/login');
+      }
     );
   };
 
@@ -66,8 +61,8 @@ export default function PerfilScreen() {
         <Text style={styles.cardTitle}>Compañero / compañera</Text>
         <Text style={styles.cardBody}>
           {photoUri
-            ? 'La foto se usa en el inicio, el portero y el coach. Chica o chico solo cambia el dibujo si vuelves al avatar pixelado o adulto.'
-            : 'Este dibujo sale en el portero y el coach. En Ajustes eliges la versión pixelada o la adulta.'}
+            ? 'La foto se usa en el inicio, el portero y el coach. Chica o chico solo cambia el dibujo si vuelves al avatar pixelado, adulto o Disney.'
+            : 'Este dibujo sale en el portero y el coach. En Ajustes eliges pixelado, adulto o Disney.'}
         </Text>
         <View style={styles.row}>
           {(

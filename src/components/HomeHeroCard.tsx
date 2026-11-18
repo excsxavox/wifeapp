@@ -1,15 +1,16 @@
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 
 import { AvatarFace } from '@/src/components/AvatarFace';
 import type { CompanionRole } from '@/src/db/types';
 import { useBudget } from '@/src/context/BudgetContext';
-import { avatarVariant, getCompanionAvatar, type CompanionMood } from '@/src/theme/companions';
+import {
+  avatarVariant,
+  getCompanionAvatar,
+  type CompanionMood,
+} from '@/src/theme/companions';
 import { colors } from '@/src/theme/colors';
-
-const HERO = '#FFB27A';
-const HERO_INK = '#3A2A1F';
-const HERO_INK_SOFT = 'rgba(58, 42, 31, 0.72)';
 
 type Props = {
   available: number;
@@ -32,13 +33,14 @@ export function HomeHeroCard({
   alertCount = 0,
   onPressAlerts,
 }: Props) {
+  const insets = useSafeAreaInsets();
   const { settings } = useBudget();
   const variant = avatarVariant(settings.avatarSource);
   const amount = formatHeroAmount(Math.max(available, 0));
 
   return (
     <View style={styles.card}>
-      <View style={styles.top}>
+      <View style={[styles.top, { paddingTop: Math.max(insets.top, 12) + 8 }]}>
         <View style={styles.topBar}>
           <Text style={styles.brand}>WifeApp</Text>
           <Pressable
@@ -53,7 +55,7 @@ export function HomeHeroCard({
                 android: 'notifications_none',
                 web: 'notifications_none',
               }}
-              tintColor={HERO_INK}
+              tintColor={colors.ink}
               size={22}
             />
             {alertCount > 0 ? (
@@ -66,22 +68,23 @@ export function HomeHeroCard({
           </Pressable>
         </View>
 
-        <View style={styles.heroRow}>
-          <View style={styles.heroCopy}>
-            <Text style={styles.headline}>Tu dinero,{'\n'}a tu ritmo.</Text>
-            <Text style={styles.month}>{monthLabel}</Text>
-          </View>
+        <View style={styles.heroCopy}>
+          <Text style={styles.headline}>Tu dinero,{'\n'}a tu ritmo.</Text>
+          <Text style={styles.month}>{monthLabel}</Text>
+        </View>
+
+        <View style={styles.companionWrap} pointerEvents="none">
           {photoUri || variant === 'adult' ? (
             <AvatarFace
               role={companionRole}
               mood={mood}
               photoUri={photoUri}
               variant={variant}
-              size={112}
+              size={128}
             />
           ) : (
             <Image
-              source={getCompanionAvatar(companionRole, mood, 'pixel')}
+              source={getCompanionAvatar(companionRole, mood, variant)}
               style={styles.companion}
               resizeMode="cover"
             />
@@ -109,30 +112,32 @@ function formatHeroAmount(value: number): string {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 28,
-    overflow: 'hidden',
+    width: '100%',
+    alignSelf: 'stretch',
     marginBottom: 16,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: '#F0E4D8',
+    backgroundColor: colors.primary,
   },
   top: {
-    backgroundColor: HERO,
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 8,
-    minHeight: 188,
+    width: '100%',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingBottom: 52,
+    minHeight: 220,
+    position: 'relative',
+    overflow: 'hidden',
   },
   topBar: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 18,
+    zIndex: 2,
   },
   brand: {
     fontFamily: 'Manrope_800ExtraBold',
     fontSize: 18,
-    color: HERO_INK,
+    color: colors.ink,
     letterSpacing: -0.3,
   },
   bellBtn: {
@@ -159,39 +164,50 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     lineHeight: 11,
   },
-  heroRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: 8,
-  },
   heroCopy: {
-    flex: 1,
-    paddingBottom: 18,
+    width: '62%',
+    maxWidth: 220,
+    paddingBottom: 8,
+    zIndex: 2,
   },
   headline: {
     fontFamily: 'Manrope_800ExtraBold',
     fontSize: 30,
     lineHeight: 34,
     letterSpacing: -0.9,
-    color: HERO_INK,
+    color: colors.ink,
   },
   month: {
     marginTop: 10,
     fontFamily: 'DMSans_400Regular',
     fontSize: 14,
-    color: HERO_INK_SOFT,
+    color: 'rgba(58, 42, 31, 0.72)',
+  },
+  companionWrap: {
+    position: 'absolute',
+    right: 8,
+    bottom: 28,
+    zIndex: 1,
   },
   companion: {
-    width: 132,
-    height: 152,
-    marginBottom: -4,
-    marginRight: -4,
+    width: 148,
+    height: 168,
   },
   bottom: {
-    backgroundColor: '#FBFCF8',
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 20,
+    width: '100%',
+    marginTop: -36,
+    zIndex: 4,
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 22,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 6,
   },
   availableLabel: {
     fontFamily: 'DMSans_500Medium',
@@ -202,6 +218,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     flexDirection: 'row',
     alignItems: 'flex-end',
+    flexWrap: 'wrap',
     gap: 8,
   },
   amount: {
@@ -209,7 +226,7 @@ const styles = StyleSheet.create({
     fontSize: 42,
     lineHeight: 48,
     letterSpacing: -1.4,
-    color: HERO_INK,
+    color: colors.ink,
   },
   currency: {
     fontFamily: 'DMSans_600SemiBold',

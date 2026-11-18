@@ -8,7 +8,7 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.primaryMid,
         tabBarInactiveTintColor: '#9BA18F',
         tabBarStyle: {
           backgroundColor: '#FFFFFFED',
@@ -70,7 +70,7 @@ export default function TabLayout() {
               }}>
               <SymbolView
                 name={{ ios: 'plus', android: 'add', web: 'add' }}
-                tintColor="#fff"
+                tintColor={colors.ink}
                 size={22}
               />
             </View>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { alertFailure, alertInfo, alertSuccess, alertWarning, confirmAction, showAlert, toastFailure, toastInfo, toastSuccess, toastWarning } from '@/src/domain/feedback';
 
 import { CategoryChip } from '@/src/components/CategoryChip';
 import { Screen } from '@/src/components/Screen';
@@ -24,14 +25,12 @@ export default function HistorialScreen() {
   );
 
   const confirmDelete = (id: number) => {
-    Alert.alert('Eliminar gasto', '¿Seguro que quieres borrarlo?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: () => removeExpense(id),
-      },
-    ]);
+    confirmAction(
+      'Eliminar gasto',
+      '¿Seguro que quieres borrarlo?',
+      'Eliminar',
+      () => removeExpense(id)
+    );
   };
 
   return (

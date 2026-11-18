@@ -1,15 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { alertFailure, alertInfo, alertSuccess, alertWarning, confirmAction, showAlert, toastFailure, toastInfo, toastSuccess, toastWarning } from '@/src/domain/feedback';
 import { useRouter } from 'expo-router';
 
 import {
@@ -62,10 +53,7 @@ export default function AppsVigiladasScreen() {
         setInstalled([]);
       }
     } catch (error) {
-      Alert.alert(
-        'No se pudieron leer apps',
-        error instanceof Error ? error.message : 'Error desconocido'
-      );
+      showAlert('No se pudieron leer apps', error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
@@ -140,14 +128,12 @@ export default function AppsVigiladasScreen() {
           />
           <Pressable
             onPress={() =>
-              Alert.alert('Eliminar', `¿Quitar ${app.label}?`, [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                  text: 'Eliminar',
-                  style: 'destructive',
-                  onPress: () => removeWatched(app.id),
-                },
-              ])
+              confirmAction(
+                'Eliminar',
+                `¿Quitar ${app.label}?`,
+                'Eliminar',
+                () => removeWatched(app.id)
+              )
             }
             style={styles.delete}>
             <Text style={styles.deleteText}>✕</Text>

@@ -35,13 +35,14 @@ export function PrimaryButton({
       <Text
         style={[
           styles.label,
+          variant === 'primary' && styles.labelOnPrimary,
           (variant === 'secondary' ||
             variant === 'ghost' ||
             variant === 'lime' ||
             variant === 'subtle') &&
             styles.labelDark,
-          variant === 'lime' && { color: colors.primary },
-          variant === 'subtle' && { color: colors.primary },
+          variant === 'lime' && { color: colors.ink },
+          variant === 'subtle' && { color: colors.ink },
           variant === 'danger' && { color: colors.danger },
         ]}>
         {label}
@@ -86,7 +87,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#fff',
   },
+  labelOnPrimary: {
+    color: colors.ink,
+  },
   labelDark: {
     color: colors.text,
   },
 });
+

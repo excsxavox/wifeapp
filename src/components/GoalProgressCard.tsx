@@ -86,9 +86,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   emptyCard: {
-    backgroundColor: '#EEF2E6',
+    backgroundColor: colors.primarySoft,
     borderWidth: 1,
-    borderColor: '#E4EAD9',
+    borderColor: '#F5D4BB',
     borderRadius: 20,
     padding: 22,
     marginBottom: 16,
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_700Bold',
     fontSize: 9,
     letterSpacing: 1.4,
-    color: '#92A17F',
+    color: colors.accent,
     marginBottom: 6,
   },
   title: {
@@ -123,16 +123,16 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     fontSize: 12,
     lineHeight: 18,
-    color: '#82906F',
+    color: colors.inkMuted,
     marginBottom: 14,
   },
   cta: {
-    fontFamily: 'DMSans_600SemiBold',
+    fontFamily: 'DMSans_700Bold',
     fontSize: 12,
-    color: colors.primary,
+    color: colors.accent,
   },
   pill: {
-    backgroundColor: '#EEF3E7',
+    backgroundColor: colors.primarySoft,
     borderRadius: 20,
     paddingHorizontal: 9,
     paddingVertical: 5,
@@ -143,10 +143,10 @@ const styles = StyleSheet.create({
   pillText: {
     fontFamily: 'DMSans_600SemiBold',
     fontSize: 10,
-    color: '#63864D',
+    color: colors.accent,
   },
   pillDoneText: {
-    color: colors.primary,
+    color: colors.ink,
   },
   amounts: {
     flexDirection: 'row',
@@ -162,13 +162,13 @@ const styles = StyleSheet.create({
   target: {
     fontFamily: 'DMSans_400Regular',
     fontSize: 13,
-    color: '#A1A79B',
+    color: colors.inkMuted,
   },
   caption: {
     marginTop: 12,
     fontFamily: 'DMSans_400Regular',
     fontSize: 11,
     lineHeight: 17,
-    color: '#8B9480',
+    color: colors.inkMuted,
   },
 });

@@ -172,7 +172,7 @@ export type OverlayConfig = {
   role: 'esposa' | 'esposo';
   currency: string;
   reminderMinutes: number;
-  avatarSource: 'pixel' | 'adult' | 'photo';
+  avatarSource: 'pixel' | 'adult' | 'disney' | 'photo';
   avatarPhotoUri: string;
   apps: { packageName: string; label: string; categoryId: number }[];
   categories: { id: number; name: string; remaining: number; spent: number; limit: number }[];

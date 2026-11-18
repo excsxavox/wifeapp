@@ -398,6 +398,7 @@ data class OverlayConfig(
           avatarSource = when (json.optString("avatarSource")) {
             "photo" -> "photo"
             "adult" -> "adult"
+            "disney" -> "disney"
             else -> "pixel"
           },
           avatarPhotoUri = json.optString("avatarPhotoUri", "")

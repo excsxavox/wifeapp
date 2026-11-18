@@ -1,12 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { alertFailure, alertInfo, alertSuccess, alertWarning, confirmAction, showAlert, toastFailure, toastInfo, toastSuccess, toastWarning } from '@/src/domain/feedback';
 
 import { BudgetBar } from '@/src/components/BudgetBar';
 import { Field } from '@/src/components/Field';
@@ -58,16 +52,13 @@ export default function PresupuestoScreen() {
       for (const category of categories) {
         const amount = parseAmount(drafts[category.id] ?? '');
         if (amount == null && drafts[category.id] !== '0') {
-          Alert.alert(
-            'Monto inválido',
-            `Revisa el límite de «${category.name}».`
-          );
+          showAlert('Monto inválido', `Revisa el límite de «${category.name}».`);
           return;
         }
         await updateLimit(category.id, amount ?? 0);
       }
       setEditing(false);
-      Alert.alert('Listo', 'Presupuesto actualizado.');
+      showAlert('Listo', 'Presupuesto actualizado.');
     } finally {
       setBusy(false);
     }
@@ -76,11 +67,11 @@ export default function PresupuestoScreen() {
   const createCategory = async () => {
     const amount = parseAmount(newLimit);
     if (!newName.trim()) {
-      Alert.alert('Nombre requerido', 'Ejemplo: Salud, Mascotas, Regalos…');
+      showAlert('Nombre requerido', 'Ejemplo: Salud, Mascotas, Regalos…');
       return;
     }
     if (amount == null || amount < 0) {
-      Alert.alert('Límite inválido', 'Escribe un monto mensual válido.');
+      showAlert('Límite inválido', 'Escribe un monto mensual válido.');
       return;
     }
     setBusy(true);
@@ -94,38 +85,26 @@ export default function PresupuestoScreen() {
       setNewLimit('100');
       setNewColor(categoryPalette[categories.length % categoryPalette.length]);
       setCreating(false);
-      Alert.alert('Categoría creada', `«${newName.trim()}» ya está en tu plan.`);
+      showAlert('Categoría creada', `«${newName.trim()}» ya está en tu plan.`);
     } catch (error) {
-      Alert.alert(
-        'No se pudo crear',
-        error instanceof Error ? error.message : 'Intenta de nuevo'
-      );
+      showAlert('No se pudo crear', error instanceof Error ? error.message : 'Intenta de nuevo');
     } finally {
       setBusy(false);
     }
   };
 
   const confirmDelete = (id: number, name: string) => {
-    Alert.alert(
+    confirmAction(
       'Eliminar categoría',
       `¿Borrar «${name}»? También se borrarán sus gastos.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
+      'Eliminar',
+      async () => {
             try {
               await removeCategory(id);
             } catch (error) {
-              Alert.alert(
-                'No se pudo eliminar',
-                error instanceof Error ? error.message : 'Intenta de nuevo'
-              );
+              showAlert('No se pudo eliminar', error instanceof Error ? error.message : 'Intenta de nuevo');
             }
-          },
-        },
-      ]
+          }
     );
   };
 
