@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   glyph: {
-    color: colors.lime,
+    color: colors.ink,
     fontWeight: '700',
   },
   lockup: {
@@ -48,9 +48,10 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope_800ExtraBold',
     fontSize: 24,
     letterSpacing: -1.1,
-    color: colors.primary,
+    color: colors.ink,
   },
   dot: {
-    color: '#A7B68D',
+    color: colors.primaryMid,
   },
 });
+

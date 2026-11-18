@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { alertFailure, alertInfo, alertSuccess, alertWarning, confirmAction, showAlert, toastFailure, toastInfo, toastSuccess, toastWarning } from '@/src/domain/feedback';
 
 import { AvatarFace } from '@/src/components/AvatarFace';
 import { CategoryChip } from '@/src/components/CategoryChip';
@@ -55,33 +56,27 @@ export default function RegistrarScreen() {
   const submit = async () => {
     const value = parseAmount(amount);
     if (!selected) {
-      Alert.alert('Elige una categoría');
+      showAlert('Elige una categoría');
       return;
     }
     if (value == null) {
-      Alert.alert('Monto inválido', 'Escribe cuánto vas a gastar.');
+      showAlert('Monto inválido', 'Escribe cuánto vas a gastar.');
       return;
     }
     if (!reason.trim()) {
-      Alert.alert('Motivo requerido', 'Di para qué es este gasto.');
+      showAlert('Motivo requerido', 'Di para qué es este gasto.');
       return;
     }
 
     const over = checkWouldExceed(selected, value);
     if (over) {
       if (!settings.emergencyPinSet) {
-        Alert.alert(
-          'Presupuesto agotado',
-          'Esta categoría ya no tiene presupuesto. Configura un código de emergencia en Ajustes para forzar el gasto.'
-        );
+        showAlert('Presupuesto agotado', 'Esta categoría ya no tiene presupuesto. Configura un código de emergencia en Ajustes para forzar el gasto.');
         return;
       }
       const ok = await verifyEmergencyPin(pin);
       if (!ok) {
-        Alert.alert(
-          'Código incorrecto',
-          'Para gastar de más necesitas el código de emergencia.'
-        );
+        showAlert('Código incorrecto', 'Para gastar de más necesitas el código de emergencia.');
         return;
       }
     }
@@ -97,12 +92,14 @@ export default function RegistrarScreen() {
       setAmount('');
       setReason('');
       setPin('');
-      Alert.alert(
-        over ? 'Registrado con emergencia' : 'Gasto registrado',
-        over
-          ? 'Quedó marcado como emergencia porque superaba el límite.'
-          : 'Tu presupuesto se actualizó.'
-      );
+      if (over) {
+        alertWarning(
+          'Registrado con emergencia',
+          'Quedó marcado como emergencia porque superaba el límite.'
+        );
+      } else {
+        toastSuccess('Gasto registrado. Tu presupuesto se actualizó.');
+      }
     } finally {
       setBusy(false);
     }

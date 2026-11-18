@@ -22,7 +22,7 @@ export default function Root({ children }: { children: ReactNode }) {
 
 const responsiveBackground = `
 body {
-  background-color: #F7F8F4;
+  background-color: #FBF6F1;
 }
 #root, body, html {
   height: 100%;

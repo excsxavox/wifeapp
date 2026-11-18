@@ -34,7 +34,7 @@ export type WatchedApp = {
 
 export type CompanionRole = 'esposa' | 'esposo';
 
-export type AvatarSource = 'pixel' | 'adult' | 'photo';
+export type AvatarSource = 'pixel' | 'adult' | 'disney' | 'photo';
 export type AuthMode = 'none' | 'guest' | 'account';
 
 export type AppSettings = {

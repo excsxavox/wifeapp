@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { alertFailure, alertInfo, alertSuccess, alertWarning, confirmAction, showAlert, toastFailure, toastInfo, toastSuccess, toastWarning } from '@/src/domain/feedback';
 
 import { removePendingExpense } from '@/modules/app-gate';
 import { CategoryChip } from '@/src/components/CategoryChip';
@@ -88,23 +89,20 @@ export default function GateScreen() {
 
   const save = async () => {
     if (selected == null) {
-      Alert.alert('Elige una categoría');
+      showAlert('Elige una categoría');
       return;
     }
     if (value == null) {
-      Alert.alert('Monto', 'Escribe cuánto gastaste, o elige «No gasté nada».');
+      showAlert('Monto', 'Escribe cuánto gastaste, o elige «No gasté nada».');
       return;
     }
     if (exceeds) {
       if (!settings.emergencyPinSet) {
-        Alert.alert(
-          'Presupuesto agotado',
-          'Configura un código de emergencia en Ajustes.'
-        );
+        showAlert('Presupuesto agotado', 'Configura un código de emergencia en Ajustes.');
         return;
       }
       if (!(await verifyEmergencyPin(pin))) {
-        Alert.alert('Código incorrecto');
+        showAlert('Código incorrecto');
         return;
       }
     }
@@ -121,10 +119,7 @@ export default function GateScreen() {
       });
       close();
     } catch (error) {
-      Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'No se pudo registrar'
-      );
+      showAlert('Error', error instanceof Error ? error.message : 'No se pudo registrar');
     } finally {
       setBusy(false);
     }

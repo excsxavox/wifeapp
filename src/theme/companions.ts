@@ -3,7 +3,7 @@ import type { ImageSourcePropType } from 'react-native';
 import type { CompanionRole } from '@/src/db/types';
 
 export type CompanionMood = 'happy' | 'uneasy' | 'annoyed' | 'angry' | 'furious';
-export type AvatarVariant = 'pixel' | 'adult';
+export type AvatarVariant = 'pixel' | 'adult' | 'disney';
 
 export const COMPANION_MOODS: CompanionMood[] = [
   'happy',
@@ -47,9 +47,43 @@ const ADULT: Record<CompanionRole, Record<CompanionMood, ImageSourcePropType>> =
   },
 };
 
-const AVATARS: Record<AvatarVariant, Record<CompanionRole, Record<CompanionMood, ImageSourcePropType>>> = {
+/** Pareja del login: solo cara tranquila / molesta. */
+const DISNEY_BASE: Record<CompanionRole, { calm: ImageSourcePropType; stern: ImageSourcePropType }> = {
+  esposa: {
+    calm: require('../../assets/companions/esposa.png'),
+    stern: require('../../assets/companions/esposa-molesta.jpg'),
+  },
+  esposo: {
+    calm: require('../../assets/companions/esposo.png'),
+    stern: require('../../assets/companions/esposo-molesto.jpg'),
+  },
+};
+
+function disneyMoodSet(
+  role: CompanionRole
+): Record<CompanionMood, ImageSourcePropType> {
+  const { calm, stern } = DISNEY_BASE[role];
+  return {
+    happy: calm,
+    uneasy: calm,
+    annoyed: stern,
+    angry: stern,
+    furious: stern,
+  };
+}
+
+const DISNEY: Record<CompanionRole, Record<CompanionMood, ImageSourcePropType>> = {
+  esposa: disneyMoodSet('esposa'),
+  esposo: disneyMoodSet('esposo'),
+};
+
+const AVATARS: Record<
+  AvatarVariant,
+  Record<CompanionRole, Record<CompanionMood, ImageSourcePropType>>
+> = {
   pixel: PIXEL,
   adult: ADULT,
+  disney: DISNEY,
 };
 
 const LABELS: Record<CompanionRole, Record<CompanionMood, string>> = {
@@ -70,7 +104,7 @@ const LABELS: Record<CompanionRole, Record<CompanionMood, string>> = {
 };
 
 export const MOOD_COLOR: Record<CompanionMood, string> = {
-  happy: '#244D3B',
+  happy: '#E89555',
   uneasy: '#C4A35A',
   annoyed: '#BA7544',
   angry: '#BD6655',
@@ -125,7 +159,9 @@ export function worstSpentRatio(
 }
 
 export function avatarVariant(source: string | undefined): AvatarVariant {
-  return source === 'adult' ? 'adult' : 'pixel';
+  if (source === 'adult') return 'adult';
+  if (source === 'disney') return 'disney';
+  return 'pixel';
 }
 
 export function getCompanionAvatar(

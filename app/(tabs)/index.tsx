@@ -214,6 +214,7 @@ export default function ResumenScreen() {
     <Screen
       showBrand={false}
       showHeading={false}
+      edgeToEdge
       refreshing={refreshing}
       onRefresh={onRefresh}
       background={home.bg}>
@@ -320,6 +321,11 @@ function formatDateLine(date: Date): string {
 }
 
 const styles = StyleSheet.create({
+  homeContent: {
+    width: '100%',
+    alignSelf: 'stretch',
+    paddingHorizontal: 20,
+  },
   muted: {
     fontFamily: homeFonts.body,
     color: colors.inkMuted,

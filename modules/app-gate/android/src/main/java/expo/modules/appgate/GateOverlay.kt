@@ -815,8 +815,17 @@ class GateOverlay(private val service: AccessibilityService) {
   }
 
   private fun faceRes(role: String, mood: String, blink: Boolean): Int {
-    val adult = GateStore.getOverlayConfig(service).avatarSource == "adult"
+    val source = GateStore.getOverlayConfig(service).avatarSource
     val wife = role != "esposo"
+    if (source == "disney") {
+      val stern = mood == "annoyed" || mood == "angry" || mood == "furious"
+      return if (wife) {
+        if (stern) R.drawable.companion_esposa_molesta else R.drawable.companion_esposa
+      } else {
+        if (stern) R.drawable.companion_esposo_molesto else R.drawable.companion_esposo
+      }
+    }
+    val adult = source == "adult"
     return if (adult) {
       if (wife) {
         when (mood) {

@@ -1,11 +1,6 @@
 import { useMemo, useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { alertFailure, alertInfo, alertSuccess, alertWarning, confirmAction, showAlert, toastFailure, toastInfo, toastSuccess, toastWarning } from '@/src/domain/feedback';
 import { useRouter } from 'expo-router';
 
 import { AvatarFace } from '@/src/components/AvatarFace';
@@ -165,22 +160,19 @@ export default function MetasScreen() {
     const targetAmount = parseAmount(target);
     const savedAmount = parseNonNegative(saved);
     if (!name.trim()) {
-      Alert.alert('Ponle un nombre', 'Ejemplo: Mi próximo viaje');
+      showAlert('Ponle un nombre', 'Ejemplo: Mi próximo viaje');
       return;
     }
     if (targetAmount == null || targetAmount <= 0) {
-      Alert.alert('Monto objetivo', 'Escribe cuánto quieres juntar.');
+      showAlert('Monto objetivo', 'Escribe cuánto quieres juntar.');
       return;
     }
     if (savedAmount == null) {
-      Alert.alert('Monto inválido', 'El ahorrado no puede ser negativo.');
+      showAlert('Monto inválido', 'El ahorrado no puede ser negativo.');
       return;
     }
     if (savedAmount > targetAmount) {
-      Alert.alert(
-        'Revisa los montos',
-        'Lo ya ahorrado no puede ser mayor que el objetivo.'
-      );
+      showAlert('Revisa los montos', 'Lo ya ahorrado no puede ser mayor que el objetivo.');
       return;
     }
 
@@ -197,9 +189,10 @@ export default function MetasScreen() {
       });
       setEditingId(goal.id);
       setSaved(String(goal.savedAmount));
-      Alert.alert(
-        editingId ? 'Meta actualizada' : '¡Meta creada!',
-        `«${name.trim()}» ya aparece en el inicio.`
+      toastSuccess(
+        editingId
+          ? `Meta actualizada · «${name.trim()}»`
+          : `¡Meta creada! · «${name.trim()}»`
       );
       setMode('list');
     } finally {
@@ -211,7 +204,7 @@ export default function MetasScreen() {
     if (editingId == null) return;
     const amount = parseAmount(contribution);
     if (amount == null || amount <= 0) {
-      Alert.alert('Monto inválido', 'Escribe cuánto quieres aportar.');
+      showAlert('Monto inválido', 'Escribe cuánto quieres aportar.');
       return;
     }
     setBusy(true);
@@ -220,10 +213,7 @@ export default function MetasScreen() {
       const next = (parseAmount(saved) ?? 0) + amount;
       setSaved(String(next));
       setContribution('');
-      Alert.alert(
-        'Aporte registrado',
-        `Sumaste ${formatMoney(amount, settings.currency)}.`
-      );
+      showAlert('Aporte registrado', `Sumaste ${formatMoney(amount, settings.currency)}.`);
     } finally {
       setBusy(false);
     }
@@ -231,19 +221,17 @@ export default function MetasScreen() {
 
   const confirmDelete = () => {
     if (editingId == null) return;
-    Alert.alert('Eliminar meta', `¿Borrar «${name}»?`, [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Eliminar',
-        style: 'destructive',
-        onPress: async () => {
+    confirmAction(
+      'Eliminar meta',
+      `¿Borrar «${name}»?`,
+      'Eliminar',
+      async () => {
           await removeGoal(editingId);
           startNew();
           if (savingsGoals.length <= 1) setMode('form');
           else setMode('list');
-        },
-      },
-    ]);
+        }
+    );
   };
 
   if (mode === 'list') {

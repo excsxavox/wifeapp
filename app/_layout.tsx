@@ -26,6 +26,7 @@ import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { FeedbackHost } from '@/src/components/FeedbackHost';
 import { BudgetProvider, useBudget } from '@/src/context/BudgetContext';
 import { colors } from '@/src/theme/colors';
 
@@ -72,10 +73,11 @@ export default function RootLayout() {
     <BudgetProvider>
       <StatusBar style="dark" />
       <SetupRedirect />
+      <FeedbackHost />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
-          headerTintColor: colors.primary,
+          headerTintColor: colors.primaryMid,
           headerTitleStyle: { fontFamily: 'Manrope_700Bold' },
           contentStyle: { backgroundColor: colors.bg },
         }}>

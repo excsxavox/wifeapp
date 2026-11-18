@@ -157,7 +157,9 @@ export async function getSettings(): Promise<AppSettings> {
     userRole: map.userRole === 'esposa' ? 'esposa' : 'esposo',
     companionRole: map.companionRole === 'esposo' ? 'esposo' : 'esposa',
     avatarSource:
-      map.avatarSource === 'photo' || map.avatarSource === 'adult'
+      map.avatarSource === 'photo' ||
+      map.avatarSource === 'adult' ||
+      map.avatarSource === 'disney'
         ? map.avatarSource
         : 'pixel',
     avatarPhotoUri: map.avatarPhotoUri ?? '',

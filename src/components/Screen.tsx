@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   safeEdgeToEdge: {
-    backgroundColor: '#FFB27A',
+    backgroundColor: colors.primary,
   },
   scroll: {
     flex: 1,

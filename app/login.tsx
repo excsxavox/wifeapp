@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -12,8 +11,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
+import { showAlert } from '@/src/domain/feedback';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 
@@ -33,12 +34,16 @@ type AuthPanel = 'menu' | 'account' | 'email';
 export default function LoginScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { reloadSettings } = useBudget();
   const [panel, setPanel] = useState<AuthPanel>('menu');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [hasAccount, setHasAccount] = useState(false);
+
+  // En pantallas altas el flex libre dejaba un hueco verde enorme; limitamos el hero.
+  const heroHeight = Math.min(Math.max(windowHeight * 0.38, 250), 320);
 
   useEffect(() => {
     let active = true;
@@ -70,10 +75,7 @@ export default function LoginScreen() {
       await continueAsGuest();
       await finishAuth();
     } catch (error) {
-      Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'No se pudo continuar'
-      );
+      showAlert('Error', error instanceof Error ? error.message : 'No se pudo continuar');
     } finally {
       setBusy(false);
     }
@@ -85,10 +87,7 @@ export default function LoginScreen() {
       await loginLocalAccount(email, password);
       await finishAuth();
     } catch (error) {
-      Alert.alert(
-        'No se pudo entrar',
-        error instanceof Error ? error.message : 'Revisa tus datos'
-      );
+      showAlert('No se pudo entrar', error instanceof Error ? error.message : 'Revisa tus datos');
     } finally {
       setBusy(false);
     }
@@ -100,34 +99,36 @@ export default function LoginScreen() {
       await registerLocalAccount(email, password);
       await finishAuth();
     } catch (error) {
-      Alert.alert(
-        'No se pudo crear la cuenta',
-        error instanceof Error ? error.message : 'Revisa tus datos'
-      );
+      showAlert('No se pudo crear la cuenta', error instanceof Error ? error.message : 'Revisa tus datos');
     } finally {
       setBusy(false);
     }
   };
 
   const onGoogle = () => {
-    Alert.alert(
-      'Próximamente',
-      'Google llegará pronto. Por ahora usa tu cuenta WifeApp o el correo.'
-    );
+    showAlert('Próximamente', 'Google llegará pronto. Por ahora usa tu cuenta WifeApp o el correo.');
   };
+
+  const heroBlockHeight = heroHeight + insets.top;
 
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={['#1A3A2C', '#244D3B', '#2F5E48']}
+        colors={['#FFC49A', '#FFB27A', '#F0A06A']}
         start={{ x: 0.2, y: 0 }}
         end={{ x: 0.8, y: 1 }}
-        style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+        style={[
+          styles.hero,
+          {
+            height: heroBlockHeight,
+            paddingTop: insets.top + 10,
+          },
+        ]}>
         <View style={styles.brandRow}>
           <Text style={styles.brand}>WifeApp</Text>
           <SymbolView
             name={{ ios: 'heart.fill', android: 'favorite', web: 'favorite' }}
-            tintColor="#FFFFFF"
+            tintColor={colors.ink}
             size={16}
             style={styles.brandHeart}
           />
@@ -136,27 +137,36 @@ export default function LoginScreen() {
         <Text style={styles.heroSub}>
           Tu pareja virtual para cuidar tus gastos.
         </Text>
-        <View style={styles.coupleWrap}>
-          <Image
-            source={require('../assets/companions/esposo.png')}
-            style={[styles.coupleImg, styles.coupleLeft]}
-            resizeMode="cover"
-          />
-          <Image
-            source={require('../assets/companions/esposa.png')}
-            style={[styles.coupleImg, styles.coupleRight]}
-            resizeMode="cover"
-          />
-        </View>
       </LinearGradient>
 
+      {/* Fuera del gradient: en Android overflow:hidden recorta si van dentro. */}
+      <View
+        pointerEvents="none"
+        style={[styles.coupleWrap, { top: heroBlockHeight - 118 }]}>
+        <Image
+          source={require('../assets/companions/esposo.png')}
+          style={[styles.coupleImg, styles.coupleLeft]}
+          resizeMode="cover"
+        />
+        <Image
+          source={require('../assets/companions/esposa.png')}
+          style={[styles.coupleImg, styles.coupleRight]}
+          resizeMode="cover"
+        />
+      </View>
+
       <KeyboardAvoidingView
-        style={styles.sheetWrap}
+        style={[styles.sheetWrap, { marginTop: -28 }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View
+          style={[
+            styles.sheet,
+            { paddingBottom: Math.max(insets.bottom, 16) },
+          ]}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            bounces={false}
             contentContainerStyle={styles.sheetContent}>
             <Text style={styles.welcome}>Bienvenido a WifeApp</Text>
 
@@ -191,7 +201,7 @@ export default function LoginScreen() {
                     pressed && { opacity: 0.7 },
                   ]}>
                   {busy ? (
-                    <ActivityIndicator color={colors.primary} />
+                    <ActivityIndicator color={colors.primaryMid} />
                   ) : (
                     <Text style={styles.guestText}>Continuar sin cuenta</Text>
                   )}
@@ -301,7 +311,7 @@ function AuthButton({
       {icon === 'mail' ? (
         <SymbolView
           name={{ ios: 'envelope.fill', android: 'mail', web: 'mail' }}
-          tintColor={colors.primary}
+          tintColor={colors.primaryMid}
           size={18}
         />
       ) : null}
@@ -323,21 +333,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   hero: {
-    flex: 1.05,
+    width: '100%',
     paddingHorizontal: 24,
-    minHeight: 280,
+    zIndex: 1,
   },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    marginBottom: 18,
+    marginBottom: 12,
   },
   brand: {
     fontFamily: 'Manrope_800ExtraBold',
     fontSize: 18,
-    color: '#FFFFFF',
+    color: colors.ink,
     letterSpacing: -0.3,
   },
   brandHeart: {
@@ -345,35 +355,38 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     fontFamily: 'Manrope_800ExtraBold',
-    fontSize: 32,
-    lineHeight: 38,
-    color: '#FFFFFF',
+    fontSize: 28,
+    lineHeight: 34,
+    color: colors.ink,
     letterSpacing: -0.8,
     maxWidth: 280,
   },
   heroSub: {
-    marginTop: 10,
+    marginTop: 8,
     fontFamily: 'DMSans_400Regular',
     fontSize: 14,
     lineHeight: 20,
-    color: 'rgba(255,255,255,0.82)',
+    color: 'rgba(58, 42, 31, 0.72)',
     maxWidth: 260,
   },
   coupleWrap: {
-    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 150,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    marginTop: 8,
-    gap: -28,
+    gap: -24,
+    zIndex: 2,
   },
   coupleImg: {
-    width: 148,
-    height: 168,
-    borderRadius: 24,
+    width: 128,
+    height: 146,
+    borderRadius: 22,
     borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.22)',
-    backgroundColor: '#163328',
+    borderColor: 'rgba(255,255,255,0.55)',
+    backgroundColor: '#E89555',
   },
   coupleLeft: {
     transform: [{ rotate: '-4deg' }, { translateY: 8 }],
@@ -384,24 +397,25 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   sheetWrap: {
-    flex: 1.15,
+    flex: 1,
+    zIndex: 3,
   },
   sheet: {
     flex: 1,
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    marginTop: -18,
     paddingTop: 22,
     paddingHorizontal: 22,
   },
   sheetContent: {
+    flexGrow: 1,
     paddingBottom: 8,
   },
   welcome: {
     fontFamily: 'Manrope_800ExtraBold',
     fontSize: 22,
-    color: colors.primary,
+    color: colors.ink,
     marginBottom: 18,
     letterSpacing: -0.4,
   },
@@ -443,7 +457,7 @@ const styles = StyleSheet.create({
   guestText: {
     fontFamily: 'DMSans_600SemiBold',
     fontSize: 14,
-    color: colors.primary,
+    color: colors.primaryMid,
   },
   form: {
     marginBottom: 8,

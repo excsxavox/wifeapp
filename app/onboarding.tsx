@@ -1,17 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  AppState,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, AppState, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { alertFailure, alertInfo, alertSuccess, alertWarning, confirmAction, showAlert, toastFailure, toastInfo, toastSuccess, toastWarning } from '@/src/domain/feedback';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import {
@@ -190,10 +180,7 @@ export default function OnboardingScreen() {
       const latest = await waitForGatePermissions();
       setPerms(latest);
       if (!latest.accessibilityEnabled) {
-        Alert.alert(
-          'Falta Accesibilidad',
-          'Sin este permiso el portero no puede detectar Pichincha, Uber u otras apps.\n\n1. Toca “Activar Accesibilidad”\n2. Busca WifeApp\n3. Actívala\n4. Vuelve aquí y toca “Ya lo activé”'
-        );
+        showAlert('Falta Accesibilidad', 'Sin este permiso el portero no puede detectar Pichincha, Uber u otras apps.\n\n1. Toca “Activar Accesibilidad”\n2. Busca WifeApp\n3. Actívala\n4. Vuelve aquí y toca “Ya lo activé”');
         return;
       }
     }
@@ -203,10 +190,7 @@ export default function OnboardingScreen() {
   const saveAppsAndContinue = async () => {
     const entries = Object.entries(selected);
     if (entries.length === 0) {
-      Alert.alert(
-        'Elige al menos una app',
-        'El portero solo funciona con las apps que marques aquí.'
-      );
+      showAlert('Elige al menos una app', 'El portero solo funciona con las apps que marques aquí.');
       return;
     }
 
@@ -237,16 +221,13 @@ export default function OnboardingScreen() {
       const latest = await waitForGatePermissions();
       setPerms(latest);
       if (!latest.accessibilityEnabled) {
-        Alert.alert(
-          'Accesibilidad obligatoria',
-          'No puedes terminar sin activar Accesibilidad para WifeApp. Sin eso el portero no funciona.'
-        );
+        showAlert('Accesibilidad obligatoria', 'No puedes terminar sin activar Accesibilidad para WifeApp. Sin eso el portero no funciona.');
         setStep('permissions');
         return;
       }
     }
     if (Object.keys(selected).length === 0) {
-      Alert.alert('Faltan apps', 'Debes elegir al menos una app para vigilar.');
+      showAlert('Faltan apps', 'Debes elegir al menos una app para vigilar.');
       setStep('classify');
       return;
     }
@@ -255,7 +236,7 @@ export default function OnboardingScreen() {
     try {
       if (withPin) {
         if (pin !== confirm) {
-          Alert.alert('Los códigos no coinciden');
+          showAlert('Los códigos no coinciden');
           return;
         }
         await setEmergencyPin(pin);
@@ -263,10 +244,7 @@ export default function OnboardingScreen() {
       await completeSetup();
       router.replace('/');
     } catch (error) {
-      Alert.alert(
-        'Error',
-        error instanceof Error ? error.message : 'No se pudo terminar la configuración'
-      );
+      showAlert('Error', error instanceof Error ? error.message : 'No se pudo terminar la configuración');
     } finally {
       setBusy(false);
     }
@@ -313,14 +291,16 @@ export default function OnboardingScreen() {
           <View>
             <Text style={styles.title}>¿Quién te acompaña?</Text>
             <Text style={styles.body}>
-              Elige el dibujo pixelado o la versión adulta. La cara se pone más
-              seria a medida que gastas. En Ajustes también puedes usar una foto.
+              Elige pixelado, adulto o Disney (como en el login). La cara se pone
+              más seria a medida que gastas. En Ajustes también puedes usar una
+              foto.
             </Text>
             <View style={styles.companionRow}>
               {(
                 [
                   { style: 'pixel' as const, label: 'Pixelado' },
                   { style: 'adult' as const, label: 'Adulto' },
+                  { style: 'disney' as const, label: 'Disney' },
                 ] as const
               ).map((option) => (
                 <Pressable
@@ -334,7 +314,7 @@ export default function OnboardingScreen() {
                     role={companionRole}
                     mood="happy"
                     variant={option.style}
-                    size={72}
+                    size={64}
                   />
                   <Text style={styles.companionLabel}>{option.label}</Text>
                 </Pressable>
@@ -422,14 +402,14 @@ export default function OnboardingScreen() {
                     onPress={async () => {
                       const latest = await waitForGatePermissions();
                       setPerms(latest);
-                      Alert.alert(
-                        latest.accessibilityEnabled
-                          ? 'Listo'
-                          : 'Aún no está activo',
-                        latest.accessibilityEnabled
-                          ? 'Accesibilidad OK. Puedes continuar.'
-                          : 'No encontramos WifeApp activa. Revisa Ajustes → Accesibilidad → WifeApp.'
-                      );
+                      if (latest.accessibilityEnabled) {
+                        toastSuccess('Accesibilidad OK. Puedes continuar.');
+                      } else {
+                        alertWarning(
+                          'Aún no está activo',
+                          'No encontramos WifeApp activa. Revisa Ajustes → Accesibilidad → WifeApp.'
+                        );
+                      }
                     }}
                     style={{ marginTop: 8 }}
                   />

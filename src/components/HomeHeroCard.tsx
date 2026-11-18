@@ -6,6 +6,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SymbolView } from 'expo-symbols';
 
 import { AvatarFace } from '@/src/components/AvatarFace';
@@ -42,6 +43,7 @@ export function HomeHeroCard({
   onPressAlerts,
 }: Props) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const wide = width >= 700;
   const { statuses, categories, watchedApps, totalSpent } = useBudget();
@@ -51,7 +53,7 @@ export function HomeHeroCard({
 
   return (
     <View style={styles.card}>
-      <View style={styles.top}>
+      <View style={[styles.top, { paddingTop: Math.max(insets.top, 12) + 8 }]}>
         <View style={styles.topBar}>
           <Text style={styles.brand}>WifeApp</Text>
           <Text style={styles.month}>{monthLabel}</Text>
@@ -126,9 +128,7 @@ export function HomeHeroCard({
 
       <View style={styles.stats}>
         <View style={styles.stat}>
-          <Text style={styles.statValue}>
-            {formatMoney(totalSpent, currency)}
-          </Text>
+          <Text style={styles.statValue}>{formatMoney(totalSpent, currency)}</Text>
           <Text style={styles.statLabel}>Gastado</Text>
         </View>
         <View style={styles.stat}>
@@ -191,20 +191,18 @@ function formatHeroAmount(value: number): string {
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 28,
-    overflow: 'hidden',
+    width: '100%',
+    alignSelf: 'stretch',
     marginBottom: 16,
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: '#F0E4D8',
   },
   top: {
     backgroundColor: HERO,
     paddingHorizontal: 16,
-    paddingTop: 14,
     paddingBottom: 16,
   },
   topBar: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -264,6 +262,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     flexDirection: 'row',
     alignItems: 'flex-end',
+    flexWrap: 'wrap',
     gap: 6,
   },
   amount: {
@@ -297,14 +296,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
   },
-  // The circle sits on the white stats strip: the negative bottom margin cancels
-  // the orange area's bottom padding.
   portrait: {
     marginRight: 6,
     marginBottom: -16,
   },
-  // On wide screens the head rises next to the top bar, so the row is no taller
-  // than the text and there is no empty band above "Disponible este mes".
   portraitWide: {
     marginRight: 56,
     marginTop: -44,
